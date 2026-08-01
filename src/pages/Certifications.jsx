@@ -17,7 +17,8 @@ const Certifications = () => {
                 <h2 className='text-4xl sm:text-5xl font-black text-white uppercase tracking-tighter'>
                     Certifications
                 </h2>
-                <div className='grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4'>
+                <p>No certifications available at the moment.</p>
+                {/*<div className='grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4'>
                     {certifications.map(({ name, icon: Icon, year }) => (
                         <div key={name} className='flex items-center gap-4 bg-[#1e1e2e] border border-[#313244] rounded-xl p-4'>
                             <div className='shrink-0 text-[#89dceb]'>
@@ -29,7 +30,7 @@ const Certifications = () => {
                             </div>
                         </div>
                     ))}
-                </div>
+                </div>*/}
             </div>
         </section>
     );

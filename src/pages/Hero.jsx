@@ -17,7 +17,7 @@ const techStack = [
 
 const Hero = () => {
     return (
-        <section id='hero' className='min-h-screen pt-20 flex flex-col items-center justify-center bg-[#0d0221] gap-12 px-6'>
+        <section id='hero' className='min-h-screen flex flex-col items-center justify-center bg-[#0d0221] gap-12 px-6'>
             <h1 className='text-5xl sm:text-7xl lg:text-8xl font-black text-white leading-tight tracking-wide'>
                 FULL STACK DEVELOPER
                 <br />

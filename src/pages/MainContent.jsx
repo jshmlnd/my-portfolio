@@ -1,8 +1,8 @@
 import { useState, useEffect } from 'react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
-import { GitCommitHorizontal, File, FolderGit } from 'lucide-react';
-import { SiReact, SiTailwindcss, SiDaisyui, SiNodedotjs, SiMongodb, SiExpress, SiSocketdotio } from "react-icons/si";
+import { GitCommitHorizontal, File, FolderGit, Copy, Check } from 'lucide-react';
+import { SiReact, SiTailwindcss, SiDaisyui, SiNodedotjs, SiMongodb, SiExpress, SiSocketdotio, SiAxios } from "react-icons/si";
 
 const projects = {
     counseling: {
@@ -25,7 +25,7 @@ const projects = {
     portfolio: {
         name: 'Personal Portfolio Website',
         role: 'Frontend Developer',
-        url: '',
+        url: 'https://my-portfolio-tau-six-64.vercel.app/',
         frontend: [
             { icon: <SiReact size="18px" />, label: 'React' },
             { icon: <SiTailwindcss size="18px" />, label: 'Tailwind CSS' },
@@ -33,6 +33,18 @@ const projects = {
         ],
         backend: '',
         description: 'A personal portfolio website showcasing my projects and skills.',
+    },
+    animei: {
+        name: 'Animei Streaming Website',
+        role: 'Full Stack Developer',
+        url: 'https://animei-snowy.vercel.app/',
+        frontend: [
+            { icon: <SiReact size="18px" />, label: 'React' },
+            { icon: <SiTailwindcss size="18px" />, label: 'Tailwind CSS' },
+            { icon: <SiDaisyui size="18px" />, label: 'DaisyUI' },
+        ],
+        backend: [{ icon: <SiAxios size="18px" />, label: 'Axios' }],
+        description: 'A free anime streaming website, built using React to showcase advanced web development skills. The project features a modern UI and seamless user experience. Built with love for my Jimei. 🩷',
     },
 };
 
@@ -55,6 +67,15 @@ const MainContent = () => {
     const [selected, setSelected] = useState(null);
     const [readmeContent, setReadmeContent] = useState('');
     const [readmeLoading, setReadmeLoading] = useState(false);
+    const [copied, setCopied] = useState(false);
+
+    const handleCopy = () => {
+        const text = activeProject?.url || activeProject?.name || '';
+        if (!text) return;
+        navigator.clipboard.writeText(text);
+        setCopied(true);
+        setTimeout(() => setCopied(false), 2000);
+    };
 
     const activeProject = selected ? projects[selected] : null;
 
@@ -82,12 +103,6 @@ const MainContent = () => {
                 <div className='flex flex-col lg:flex-row gap-8'>
                     <aside className='lg:w-70'>
                         <ul className="menu menu-xs bg-[#1e1e2e] border border-[#313244] rounded-box w-full">
-                            <li className={selected === 'readme' ? 'active' : ''}>
-                                <a onClick={() => setSelected('readme')}>
-                                    <File size={14} />
-                                    README.md
-                                </a>
-                            </li>
                             <li>
                                 <details open>
                                     <summary>
@@ -105,6 +120,12 @@ const MainContent = () => {
                                             <a onClick={() => setSelected('portfolio')}>
                                                 <FolderGit size={14} />
                                                 Personal Portfolio Website
+                                            </a>
+                                        </li>
+                                        <li className={selected === 'animei' ? 'active' : ''}>
+                                            <a onClick={() => setSelected('animei')}>
+                                                <FolderGit size={14} />
+                                                Animei Streaming Website
                                             </a>
                                         </li>
                                     </ul>
@@ -161,8 +182,19 @@ const MainContent = () => {
 
                         <div className="mockup-browser border border-[#313244] bg-[#1e1e2e] rounded-2xl flex flex-col min-h-[500px]">
                             <div className="mockup-browser-toolbar pb-2.5 border-b border-[#313244]">
-                                <div className="input text-sm">
-                                    {activeProject ? activeProject.url || activeProject.name : 'Select a project...'}
+                                <div className="input text-sm flex items-center justify-between">
+                                    <span className="truncate">
+                                        {activeProject ? activeProject.url || activeProject.name : 'Select a project...'}
+                                    </span>
+                                    {activeProject && (
+                                        <button
+                                            onClick={handleCopy}
+                                            className="ml-2 p-1 rounded hover:bg-[#313244] transition-colors text-[#6c7086] hover:text-[#cdd6f4]"
+                                            title="Copy to clipboard"
+                                        >
+                                            {copied ? <Check size={14} className="text-[#a6e3a1]" /> : <Copy size={14} />}
+                                        </button>
+                                    )}
                                 </div>
                             </div>
                             <div className="flex-1 overflow-y-auto markdown-body-container">
