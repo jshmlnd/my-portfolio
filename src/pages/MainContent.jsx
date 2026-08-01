@@ -35,7 +35,7 @@ const projects = {
         description: 'A personal portfolio website showcasing my projects and skills.',
     },
     animei: {
-        name: 'Animei Streaming Website',
+        name: 'Animei: Free Anime Streaming Website',
         role: 'Full Stack Developer',
         url: 'https://animei-snowy.vercel.app/',
         frontend: [
