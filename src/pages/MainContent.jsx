@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { GitCommitHorizontal, File, FolderGit, Copy, Check } from 'lucide-react';
-import { SiReact, SiTailwindcss, SiDaisyui, SiNodedotjs, SiMongodb, SiExpress, SiSocketdotio, SiAxios } from "react-icons/si";
+import { SiReact, SiTailwindcss, SiDaisyui, SiNodedotjs, SiMongodb, SiExpress, SiSocketdotio, SiAxios, SiVercel, SiAnilist } from "react-icons/si";
 
 const projects = {
     counseling: {
@@ -20,7 +20,7 @@ const projects = {
             { icon: <SiExpress size="18px" />, label: 'Express' },
             { icon: <SiSocketdotio size="18px" />, label: 'Socket.io' },
         ],
-        description: 'A web application designed to assist university students with counseling services and academic guidance.',
+        description: 'A web application designed to assist university students with counseling services and academic guidance. Showcasing my full stack development skills, the project features a tech-bio UI. The backend is built with Node.js, Express, and MongoDB, while the frontend is developed using React, Tailwind CSS, and DaisyUI. The application also incorporates real-time communication using Socket.io and Agora for seamless interaction between students and counselors.',
     },
     portfolio: {
         name: 'Personal Portfolio Website',
@@ -32,7 +32,7 @@ const projects = {
             { icon: <SiDaisyui size="18px" />, label: 'DaisyUI' },
         ],
         backend: '',
-        description: 'A personal portfolio website showcasing my projects and skills.',
+        description: 'A personal portfolio website showcasing my front end developing skills, featuring a unique design and smooth user experience.',
     },
     animei: {
         name: 'Animei: Free Anime Streaming Website',
@@ -42,8 +42,12 @@ const projects = {
             { icon: <SiReact size="18px" />, label: 'React' },
             { icon: <SiTailwindcss size="18px" />, label: 'Tailwind CSS' },
             { icon: <SiDaisyui size="18px" />, label: 'DaisyUI' },
+            { icon: <SiAnilist size="18px" />, label: 'AniList API' },
         ],
-        backend: [{ icon: <SiAxios size="18px" />, label: 'Axios' }],
+        backend: [
+            { icon: <SiAxios size="18px" />, label: 'Axios' },
+            { icon: <SiVercel size="18px" />, label: 'Vercel Serverless Function' },
+        ],
         description: 'A free anime streaming website, built using React to showcase advanced web development skills. The project features a modern UI and seamless user experience. Built with love for my Jimei. 🩷',
     },
 };
@@ -113,19 +117,19 @@ const MainContent = () => {
                                         <li className={selected === 'counseling' ? 'active' : ''}>
                                             <a onClick={() => setSelected('counseling')}>
                                                 <FolderGit size={14} />
-                                                University Counseling Web Application
+                                                jshmlnd/ust-legazpi-mhss
                                             </a>
                                         </li>
                                         <li className={selected === 'portfolio' ? 'active' : ''}>
                                             <a onClick={() => setSelected('portfolio')}>
                                                 <FolderGit size={14} />
-                                                Personal Portfolio Website
+                                                jshmlnd/my-portfolio
                                             </a>
                                         </li>
                                         <li className={selected === 'animei' ? 'active' : ''}>
                                             <a onClick={() => setSelected('animei')}>
                                                 <FolderGit size={14} />
-                                                Animei Streaming Website
+                                                jshmlnd/ani-mei
                                             </a>
                                         </li>
                                     </ul>
