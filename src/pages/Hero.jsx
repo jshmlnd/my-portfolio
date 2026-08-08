@@ -1,4 +1,5 @@
 import { siJavascript, siTypescript, siReact, siNextdotjs, siLua, siOpenjdk, siPython, siMongodb } from 'simple-icons';
+import cv from '../assets/cv/Joshua_Klein_Malonda_Resume.pdf';
 
 const terminalTitle = 'jshmlnd@jshmld-VirtualBox ~ zsh';
 const terminal = terminalTitle.slice(0, 25);
@@ -31,9 +32,9 @@ const Hero = () => {
                         I focus on building scalable, efficient solutions with a structured,
                         problem-solving mindset.
                     </p>
-                    <button className="btn btn-outline btn-success rounded-full px-8">
+                    <a href={cv} download="Joshua_Klein_Malonda_Resume.pdf" className="btn btn-outline btn-success rounded-full px-8">
                         Download CV
-                    </button>
+                    </a>
                 </div>
 
                 <div className='w-full max-w-2xl lg:w-1/2 rounded-2xl overflow-hidden border border-[#313244] bg-[#1e1e2e]'>
