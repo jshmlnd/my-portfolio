@@ -1,4 +1,3 @@
-import './App.css'
 import HeroSection from './pages/Hero'
 import Navbar from './pages/Navbar'
 import MainContent from './pages/MainContent'
