@@ -26,7 +26,7 @@ const Certifications = () => {
       <div className="max-w-[1160px] mx-auto flex flex-col gap-8 reveal" ref={revealRef}>
         <div className="flex flex-col lg:flex-row lg:items-end justify-between gap-6">
           <div className="space-y-3">
-            <p className="mono-label">03 — Credentials</p>
+            <p className="mono-label">04 — Credentials</p>
             <h2 className="text-[32px] sm:text-[40px] font-black tracking-[-0.03em] leading-none text-white">
               Certifications <span className="text-zinc-500">& learning.</span>
             </h2>

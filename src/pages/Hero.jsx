@@ -72,11 +72,11 @@ const Hero = () => {
         <div className="flex flex-wrap items-center gap-3 mb-8 animate-fade-in-up">
           <span className="inline-flex items-center gap-2 rounded-full border border-[#27272a] bg-[#18181b] px-3 py-1">
             <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-            <span className="font-mono text-[11px] tracking-wide text-zinc-300">Available for internships — 2027</span>
+            <span className="font-mono text-[11px] tracking-wide text-zinc-300">&#60;jshmlnd /&#62;</span>
           </span>
           <span className="hidden sm:inline-flex items-center gap-2 font-mono text-[11px] tracking-widest uppercase text-zinc-500">
             <span className="w-px h-3 bg-[#27272a]" />
-            Legazpi City, PH · UST-Legazpi
+            Legazpi City, PH 
           </span>
         </div>
 
@@ -90,14 +90,13 @@ const Hero = () => {
                 <span className="block text-zinc-500">Malonda</span>
               </h1>
               <p className="mono-label !normal-case !tracking-normal !text-[13px] !text-zinc-500 font-mono">
-                &lt;jshmlnd /&gt; — Building apps for the love of the game.
+                &#60;jshmlnd /&#62; — Building solutions for the love of the game.
               </p>
             </div>
 
             <p className="max-w-[560px] text-[15px] leading-7 text-zinc-400 animate-fade-in-up delay-200">
               I design and ship full-stack web products — from polished React interfaces and design systems to
-              resilient Node.js APIs, data models, and deployment pipelines. I care about clean architecture,
-              measured performance, and code that lasts.
+              resilient Node.js APIs, data models, and deployment pipelines. I care about clean architecture, and code that lasts.
             </p>
 
             <div className="flex flex-wrap gap-3 animate-fade-in-up delay-300">

@@ -6,6 +6,26 @@ const socialLinks = [
 ];
 
 const Footer = () => {
+  const scrollTo = (href) => {
+    const el = document.querySelector(href);
+    if (!el) return;
+    const navOffset = 72;
+    const top = el.getBoundingClientRect().top + window.scrollY - navOffset;
+    const start = window.scrollY;
+    const distance = top - start;
+    const duration = 650;
+    let startTime = null;
+    const step = (ts) => {
+      if (startTime === null) startTime = ts;
+      const progress = Math.min((ts - startTime) / duration, 1);
+      const ease = 1 - Math.pow(1 - progress, 3);
+      window.scrollTo(0, start + distance * ease);
+      if (progress < 1) requestAnimationFrame(step);
+      else history.replaceState(null, '', href);
+    };
+    requestAnimationFrame(step);
+  };
+
   return (
     <footer className="border-t border-[#1f1f23] bg-[#09090b]">
       <div className="max-w-[1160px] mx-auto px-6">
@@ -28,7 +48,7 @@ const Footer = () => {
             <div className="flex flex-wrap gap-2 pt-1">
               <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full border border-[#27272a] bg-[#0f0f10] font-mono text-[11px] tracking-wide text-zinc-500">
                 <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
-                Open to internships ’27
+                Deployed
               </span>
               <span className="inline-flex items-center px-2.5 py-1 rounded-full border border-[#27272a] bg-[#0f0f10] font-mono text-[11px] tracking-wide text-zinc-500">
                 Legazpi City, PH
@@ -41,17 +61,50 @@ const Footer = () => {
               <p className="font-mono text-[11px] tracking-widest uppercase font-semibold text-zinc-400">Navigate</p>
               <ul className="space-y-2 text-sm">
                 <li>
-                  <a href="#hero" className="text-zinc-500 hover:text-white transition-colors">
+                  <a
+                    href="#hero"
+                    onClick={(e) => {
+                      e.preventDefault();
+                      scrollTo('#hero');
+                    }}
+                    className="text-zinc-500 hover:text-white transition-colors"
+                  >
                     About
                   </a>
                 </li>
                 <li>
-                  <a href="#projects" className="text-zinc-500 hover:text-white transition-colors">
+                  <a
+                    href="#projects"
+                    onClick={(e) => {
+                      e.preventDefault();
+                      scrollTo('#projects');
+                    }}
+                    className="text-zinc-500 hover:text-white transition-colors"
+                  >
                     Work
                   </a>
                 </li>
                 <li>
-                  <a href="#certs" className="text-zinc-500 hover:text-white transition-colors">
+                  <a
+                    href="#packages"
+                    onClick={(e) => {
+                      e.preventDefault();
+                      scrollTo('#packages');
+                    }}
+                    className="text-zinc-500 hover:text-white transition-colors"
+                  >
+                    Package
+                  </a>
+                </li>
+                <li>
+                  <a
+                    href="#certs"
+                    onClick={(e) => {
+                      e.preventDefault();
+                      scrollTo('#certs');
+                    }}
+                    className="text-zinc-500 hover:text-white transition-colors"
+                  >
                     Certifications
                   </a>
                 </li>

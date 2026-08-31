@@ -4,7 +4,8 @@ import { siGithub } from 'simple-icons';
 
 const navItems = [
   { label: 'About', href: '#hero', id: 'hero' },
-  { label: 'Work', href: '#projects', id: 'projects' },
+  { label: 'Repos', href: '#projects', id: 'projects' },
+  { label: 'Package', href: '#packages', id: 'packages' },
   { label: 'Certs', href: '#certs', id: 'certs' },
 ];
 

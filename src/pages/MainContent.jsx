@@ -45,7 +45,7 @@ const projects = {
   portfolio: {
     name: 'Personal Portfolio Website',
     role: 'Frontend Developer',
-    url: 'https://my-portfolio-tau-six-64.vercel.app/',
+    url: 'https://jshmlnd.space',
     year: '2024',
     highlight: 'Design-forward personal site',
     frontend: [
@@ -61,12 +61,12 @@ const projects = {
     role: 'Full Stack Developer',
     url: 'https://animei-snowy.vercel.app/',
     year: '2024',
-    highlight: 'Streaming UI · AniList API',
+    highlight: 'Streaming UI · AniMei API',
     frontend: [
       { icon: <SiReact size="16" />, label: 'React' },
       { icon: <SiTailwindcss size="16" />, label: 'Tailwind' },
       { icon: <SiDaisyui size="16" />, label: 'DaisyUI' },
-      { icon: <SiAnilist size="16" />, label: 'AniList API' },
+      { icon: <SiAnilist size="16" />, label: 'AniMei API' },
     ],
     backend: [
       { icon: <SiAxios size="16" />, label: 'Axios' },
@@ -121,6 +121,26 @@ const projects = {
 };
 
 const README_URL = 'https://raw.githubusercontent.com/jshmlnd/.github/main/profile/README.md';
+const REPOS_API = 'https://githubprofileapi.joshuaklein-malonda.workers.dev/repos';
+
+// Enriched metadata for known repos (keeps deployed URLs, stacks, etc.)
+const enrichedByRepo = {
+  'ust-legazpi-mhss': projects.counseling,
+  'my-portfolio': projects.portfolio,
+  'ani-mei': projects.animei,
+  'smors-saas': projects.smors,
+  MeiShortsAI: projects.meishortsai,
+  'zjkm666-scraperapi': {
+    name: 'ScraperAPI — @zjkm666/scraperapi',
+    role: 'NPM Package',
+    url: 'https://www.npmjs.com/package/@zjkm666/scraperapi',
+    year: '2025',
+    highlight: 'CLI + library · npm',
+    frontend: [{ icon: <SiNodedotjs size="16" />, label: 'Node.js' }],
+    backend: [{ icon: <SiExpress size="16" />, label: 'Express' }],
+    description: 'Generate a customizable Express scraping API from any URL — CLI scaffolder + library. Declarative endpoints, Playwright for JS-rendered sites, node-cache. See Packages section.',
+  },
+};
 
 const LoadingSkeleton = () => (
   <div className="flex flex-col gap-3 animate-pulse p-4">
@@ -136,14 +156,19 @@ const LoadingSkeleton = () => (
 );
 
 const MainContent = () => {
-  const [selected, setSelected] = useState('smors');
+  const [selected, setSelected] = useState('smors-saas');
   const [readmeContent, setReadmeContent] = useState('');
   const [readmeLoading, setReadmeLoading] = useState(false);
   const [copied, setCopied] = useState(false);
   const [frameLoading, setFrameLoading] = useState(true);
   const [frameError, setFrameError] = useState(false);
   const [frameKey, setFrameKey] = useState(0);
+  const [repos, setRepos] = useState([]);
+  const [reposLoading, setReposLoading] = useState(true);
+  const [reposError, setReposError] = useState(null);
   const revealRef = useReveal();
+
+
 
   const handleCopy = () => {
     const text = activeProject?.url || activeProject?.name || '';
@@ -153,7 +178,56 @@ const MainContent = () => {
     setTimeout(() => setCopied(false), 2000);
   };
 
-  const activeProject = selected ? projects[selected] : null;
+  // Fetch repositories from Cloudflare Worker API
+  useEffect(() => {
+    let cancelled = false;
+    setReposLoading(true);
+    setReposError(null);
+    fetch(REPOS_API)
+      .then((res) => {
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        return res.json();
+      })
+      .then((json) => {
+        if (cancelled) return;
+        const data = Array.isArray(json.data) ? json.data : Array.isArray(json) ? json : [];
+        setRepos(data);
+        // auto-select first enriched repo if current selection not in list
+        setSelected((prev) => {
+          if (data.length && !data.find((r) => r.name === prev)) {
+            const preferred = data.find((r) => enrichedByRepo[r.name]) || data[0];
+            return preferred ? preferred.name : prev;
+          }
+          return prev;
+        });
+      })
+      .catch((err) => {
+        if (!cancelled) setReposError(err.message || 'Failed to fetch');
+      })
+      .finally(() => {
+        if (!cancelled) setReposLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  const activeRepo = repos.find((r) => r.name === selected) || null;
+  const enriched = selected ? enrichedByRepo[selected] : null;
+  const activeProject = enriched
+    ? enriched
+    : activeRepo
+      ? {
+          name: activeRepo.name,
+          role: activeRepo.language ? `${activeRepo.language} · ${activeRepo.visibility}` : activeRepo.visibility,
+          url: activeRepo.absoluteUrl,
+          year: activeRepo.updated ? new Date(activeRepo.updated).getFullYear().toString() : '',
+          highlight: activeRepo.description ? activeRepo.description.slice(0, 48) : activeRepo.language || 'Repository',
+          frontend: activeRepo.language ? [{ icon: <span className="w-2 h-2 rounded-full" style={{ background: activeRepo.languageColor?.match(/#[0-9a-fA-F]{3,6}/)?.[0] || '#71717a' }} />, label: activeRepo.language }] : [],
+          backend: '',
+          description: activeRepo.description || `GitHub repository ${activeRepo.name} — ${activeRepo.absoluteUrl}`,
+        }
+      : null;
 
   useEffect(() => {
     if (selected === 'readme' && !readmeContent) {
@@ -190,13 +264,16 @@ const MainContent = () => {
     setFrameKey((k) => k + 1);
   };
 
-  const sidebarItems = [
-    { key: 'counseling', label: 'ust-legazpi-mhss', repo: 'jshmlnd/ust-legazpi-mhss' },
-    { key: 'portfolio', label: 'my-portfolio', repo: 'jshmlnd/my-portfolio' },
-    { key: 'animei', label: 'ani-mei', repo: 'jshmlnd/ani-mei' },
-    { key: 'smors', label: 'smors-saas', repo: 'jshmlnd/smors-saas' },
-    { key: 'meishortsai', label: 'MeiShortsAI', repo: 'jshmlnd/MeiShortsAI' },
-  ];
+  // Derived sidebar items from API (fallback to enriched keys if API fails)
+  const sidebarItems = repos.length
+    ? repos
+    : Object.keys(enrichedByRepo).map((name) => ({
+        name,
+        absoluteUrl: `https://github.com/jshmlnd/${name}`,
+        language: null,
+        description: enrichedByRepo[name]?.highlight || null,
+        updated: null,
+      }));
 
   return (
     <section id="projects" className="bg-[#09090b] border-t border-[#1f1f23] px-6 py-16 lg:py-20">
@@ -206,21 +283,21 @@ const MainContent = () => {
           <div className="space-y-3">
             <p className="mono-label">02 — Selected Work</p>
             <h2 className="text-[32px] sm:text-[40px] font-black tracking-[-0.03em] leading-none text-white">
-              Products shipped <span className="text-zinc-500">end-to-end.</span>
+              Products <span className="text-zinc-500">Deployed.</span>
             </h2>
             <p className="max-w-[560px] text-[14px] leading-6 text-zinc-400">
-              A snapshot of full-stack work — frontend craft, API design, data modeling, and deployment. Select a
+              Live from <span className="text-zinc-300 font-mono text-xs">githubprofileapi.joshuaklein-malonda.workers.dev</span> — frontend craft, API design, data modeling, and deployment. Select a
               repository to inspect the stack and preview the live site.
             </p>
           </div>
           <div className="hidden sm:flex items-center gap-2 font-mono text-[11px] tracking-wide text-zinc-500">
-            <span className="w-2 h-2 rounded-full bg-white/60" />
-            5 repositories · Live previews
+            <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+            {reposLoading ? 'Loading…' : reposError ? 'Offline · fallback' : `${repos.length} repositories · Live`}
           </div>
         </div>
 
         <div className="grid lg:grid-cols-[300px_1fr] gap-6 items-start">
-          {/* Sidebar - Repositories (retained) */}
+          {/* Sidebar - Repositories (fetched live) */}
           <aside className="rounded-2xl border border-[#27272a] bg-[#0f0f10] overflow-hidden">
             <div className="px-4 py-3 border-b border-[#232326] flex items-center justify-between">
               <div className="flex items-center gap-2">
@@ -236,44 +313,60 @@ const MainContent = () => {
             </div>
 
             <div className="p-2">
-              <div className="px-2 py-2">
+              <div className="px-2 py-2 flex items-center justify-between">
                 <p className="font-mono text-[10px] tracking-widest uppercase text-zinc-600">jshmlnd</p>
+                {reposLoading && <span className="w-3 h-3 rounded-full border-2 border-zinc-700 border-t-white animate-spin" />}
               </div>
-              <ul className="space-y-1">
-                {sidebarItems.map(({ key, repo }) => {
-                  const isActive = selected === key;
-                  const p = projects[key];
-                  return (
-                    <li key={key}>
-                      <button
-                        onClick={() => setSelected(key)}
-                        className={`w-full text-left group flex items-center gap-3 px-3 py-2.5 rounded-xl border transition-all duration-200 ${
-                          isActive
-                            ? 'bg-white text-black border-white shadow-sm'
-                            : 'bg-[#141416] border-transparent hover:bg-[#1a1a1e] hover:border-[#27272a] text-zinc-300'
-                        }`}
-                      >
-                        <span
-                          className={`w-7 h-7 rounded-lg flex items-center justify-center shrink-0 border transition-colors ${
-                            isActive ? 'bg-black text-white border-black' : 'bg-[#0f0f10] border-[#27272a] text-zinc-500 group-hover:text-zinc-300'
+              {reposLoading ? (
+                <div className="space-y-2 p-2">
+                  {[1, 2, 3, 4, 5].map((i) => (
+                    <div key={i} className="h-[52px] rounded-xl bg-[#141416] border border-[#232326] animate-pulse" />
+                  ))}
+                </div>
+              ) : reposError ? (
+                <div className="mx-2 p-3 rounded-xl bg-amber-500/10 border border-amber-500/20 text-amber-200">
+                  <p className="font-mono text-[11px]">Failed to load: {reposError}</p>
+                  <p className="text-[11px] text-amber-200/70 mt-1">Showing fallback enriched repos.</p>
+                </div>
+              ) : null}
+              {!reposLoading && (
+                <ul className="space-y-1">
+                  {sidebarItems.map((repo) => {
+                    const isActive = selected === repo.name;
+                    const meta = enrichedByRepo[repo.name];
+                    const subtitle = meta ? `${meta.highlight} · ${meta.year}` : `${repo.language || '—'} · ${repo.updated ? new Date(repo.updated).toLocaleDateString() : ''}`;
+                    return (
+                      <li key={repo.name}>
+                        <button
+                          onClick={() => setSelected(repo.name)}
+                          className={`w-full text-left group flex items-center gap-3 px-3 py-2.5 rounded-xl border transition-all duration-200 ${
+                            isActive ? 'bg-white text-black border-white shadow-sm' : 'bg-[#141416] border-transparent hover:bg-[#1a1a1e] hover:border-[#27272a] text-zinc-300'
                           }`}
                         >
-                          <FolderGit size={14} />
-                        </span>
-                        <span className="flex-1 min-w-0">
-                          <span className={`block font-mono text-[12px] font-medium truncate ${isActive ? 'text-black' : 'text-zinc-200'}`}>
-                            {repo}
+                          <span
+                            className={`w-7 h-7 rounded-lg flex items-center justify-center shrink-0 border transition-colors ${
+                              isActive ? 'bg-black text-white border-black' : 'bg-[#0f0f10] border-[#27272a] text-zinc-500 group-hover:text-zinc-300'
+                            }`}
+                          >
+                            <FolderGit size={14} />
                           </span>
-                          <span className={`block text-[11px] truncate ${isActive ? 'text-zinc-600' : 'text-zinc-500'}`}>
-                            {p.highlight} · {p.year}
+                          <span className="flex-1 min-w-0">
+                            <span className={`block font-mono text-[12px] font-medium truncate ${isActive ? 'text-black' : 'text-zinc-200'}`}>
+                              jshmlnd/{repo.name}
+                            </span>
+                            <span className={`block text-[11px] truncate ${isActive ? 'text-zinc-600' : 'text-zinc-500'}`}>{subtitle}</span>
                           </span>
-                        </span>
-                        {isActive && <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 shrink-0" />}
-                      </button>
-                    </li>
-                  );
-                })}
-              </ul>
+                          {isActive ? (
+                            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 shrink-0" />
+                          ) : repo.language ? (
+                            <span className="w-2 h-2 rounded-full shrink-0" style={{ background: repo.languageColor?.match(/#[0-9a-fA-F]{3,6}/)?.[0] || '#71717a' }} />
+                          ) : null}
+                        </button>
+                      </li>
+                    );
+                  })}
+                </ul>
+              )}
 
               <div className="mt-3 p-3 rounded-xl bg-[#141416] border border-[#232326]">
                 <p className="font-mono text-[11px] tracking-wide text-zinc-400">Terminal hint</p>

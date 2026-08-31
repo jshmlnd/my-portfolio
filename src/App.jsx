@@ -1,6 +1,7 @@
 import HeroSection from './pages/Hero'
 import Navbar from './pages/Navbar'
 import MainContent from './pages/MainContent'
+import NpmPackage from './pages/NpmPackage'
 import Certifications from './pages/Certifications'
 import Footer from './pages/Footer'
 
@@ -10,6 +11,7 @@ function App() {
       <Navbar />
       <HeroSection />
       <MainContent />
+      <NpmPackage />
       <Certifications />
       <Footer />
     </div>
