@@ -240,7 +240,7 @@ const Navbar = () => {
               <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
             </span>
             <span className="font-mono text-[11px] tracking-wide text-zinc-400 pr-2">
-              Available for internships ’27
+              Available for Internships
             </span>
             <a
               href="https://github.com/jshmlnd"
