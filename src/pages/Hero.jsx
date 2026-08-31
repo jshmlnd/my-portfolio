@@ -10,7 +10,7 @@ import {
   siMongodb,
 } from 'simple-icons';
 import cv from '../assets/cv/Joshua_Klein_Malonda_Resume.pdf';
-import { Download, Eye, MoveRight } from 'lucide-react';
+import { Download, MoveRight } from 'lucide-react';
 
 const terminalTitle = 'jshmlnd — zsh — 80×24';
 
@@ -105,7 +105,23 @@ const Hero = () => {
                 href="#projects"
                 onClick={(e) => {
                   e.preventDefault();
-                  document.querySelector('#projects')?.scrollIntoView({ behavior: 'smooth' });
+                  const el = document.getElementById('projects');
+                  if (!el) return;
+                  const navOffset = 72;
+                  const top = el.getBoundingClientRect().top + window.scrollY - navOffset;
+                  const start = window.scrollY;
+                  const distance = top - start;
+                  const duration = 650;
+                  let startTime = null;
+                  const step = (ts) => {
+                    if (startTime === null) startTime = ts;
+                    const progress = Math.min((ts - startTime) / duration, 1);
+                    const ease = 1 - Math.pow(1 - progress, 3);
+                    window.scrollTo(0, start + distance * ease);
+                    if (progress < 1) requestAnimationFrame(step);
+                    else history.replaceState(null, '', '#projects');
+                  };
+                  requestAnimationFrame(step);
                 }}
                 className="inline-flex items-center gap-2 px-6 py-3 rounded-full bg-white text-black text-sm font-semibold hover:bg-zinc-100 transition-colors"
               >

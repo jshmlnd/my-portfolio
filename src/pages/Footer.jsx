@@ -1,4 +1,3 @@
-import { Heart } from 'lucide-react';
 import { siGithub, siFacebook } from 'simple-icons';
 
 const socialLinks = [
