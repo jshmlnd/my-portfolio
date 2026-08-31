@@ -6,12 +6,12 @@ import Footer from './pages/Footer'
 
 function App() {
   return (
-    <div className="relative w-full bg-[#0d0221]">
-        <Navbar />
-        <HeroSection />
-        <MainContent />
-        <Certifications />
-        <Footer />
+    <div className="relative w-full min-h-screen bg-[#09090b] text-zinc-100 selection:bg-white/10 selection:text-white antialiased">
+      <Navbar />
+      <HeroSection />
+      <MainContent />
+      <Certifications />
+      <Footer />
     </div>
   )
 }
