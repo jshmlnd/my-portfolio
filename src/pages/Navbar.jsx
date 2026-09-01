@@ -257,7 +257,9 @@ const Navbar = () => {
           </div>
 
           <a
-            href="mailto:joshua.malonda11@gmail.com"
+            href="https://www.linkedin.com/in/jshmlnd/"
+            target="_blank"
+            rel="noopener noreferrer"
             className="hidden sm:inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white text-black text-[13px] font-medium hover:bg-zinc-100 transition-colors"
           >
             Contact

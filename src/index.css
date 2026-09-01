@@ -143,3 +143,21 @@ body {
   outline: 1px solid #fafafa;
   outline-offset: 2px;
 }
+
+/* Custom Cursor - single circle pointer used everywhere */
+:root {
+  --cursor-circle: url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='32' height='32' viewBox='0 0 32 32'%3E%3Ccircle cx='16' cy='16' r='10' fill='none' stroke='%23fafafa' stroke-width='1.5' opacity='0.8'/%3E%3Ccircle cx='16' cy='16' r='3' fill='%23fafafa' opacity='0.9'/%3E%3C/svg%3E") 16 16;
+}
+
+html.cursor-enabled,
+html.cursor-enabled a,
+html.cursor-enabled button,
+html.cursor-enabled [role="button"],
+html.cursor-enabled select,
+html.cursor-enabled summary,
+html.cursor-enabled input,
+html.cursor-enabled textarea,
+html.cursor-enabled label {
+  cursor: var(--cursor-circle), auto;
+}
+

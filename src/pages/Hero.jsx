@@ -72,7 +72,7 @@ const Hero = () => {
         <div className="flex flex-wrap items-center gap-3 mb-8 animate-fade-in-up">
           <span className="inline-flex items-center gap-2 rounded-full border border-[#27272a] bg-[#18181b] px-3 py-1">
             <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-            <span className="font-mono text-[11px] tracking-wide text-zinc-300">Active</span>
+            <span className="font-mono text-[11px] tracking-wide text-zinc-300">Status: Active</span>
           </span>
           <span className="hidden sm:inline-flex items-center gap-2 font-mono text-[11px] tracking-widest uppercase text-zinc-500">
             <span className="w-px h-3 bg-[#27272a]" />
@@ -90,7 +90,7 @@ const Hero = () => {
                 <span className="block text-zinc-500">Malonda</span>
               </h1>
               <p className="mono-label !normal-case !tracking-normal !text-[13px] !text-zinc-500 font-mono">
-                &#60;jshmlnd /&#62; — Building solutions for the love of the game.
+                &#60;jshmlnd/&#62; — Building solutions for the love of the game.
               </p>
             </div>
 
