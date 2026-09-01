@@ -54,7 +54,7 @@ const projects = {
       { icon: <SiDaisyui size="16" />, label: 'DaisyUI' },
     ],
     backend: '',
-    description: 'Personal portfolio with deliberate typography, motion, and a terminal-inspired interaction model. Built for speed and clarity.',
+    description: 'Personal portfolio website using React. Built to showcase my skills and creativity.',
   },
   animei: {
     name: 'Animei: Free Anime Streaming Website',
@@ -72,7 +72,7 @@ const projects = {
       { icon: <SiAxios size="16" />, label: 'Axios' },
       { icon: <SiVercel size="16" />, label: 'Vercel Functions' },
     ],
-    description: 'Free anime streaming experience with modern UI and fast content discovery. Integrated with AniList API and Vercel serverless functions.',
+    description: 'Free anime streaming experience with modern UI and fast content discovery, built with React and integrated with AniMei API.',
   },
   smors: {
     name: 'SMORS Collection',
@@ -81,7 +81,7 @@ const projects = {
     year: '2025',
     highlight: 'E-commerce · Admin back office',
     frontend: [
-      { icon: <SiReact size="16" />, label: 'React' },
+      { icon: <SiReact size="16" />, label: 'React' }, 
       { icon: <SiTailwindcss size="16" />, label: 'Tailwind' },
       { icon: <SiDaisyui size="16" />, label: 'DaisyUI' },
       { icon: <Box size="16" />, label: 'Zustand' },
@@ -95,7 +95,7 @@ const projects = {
       { icon: <SiCloudinary size="16" />, label: 'Cloudinary' },
     ],
     description:
-      'Thrifted fashion storefront with full admin suite: product management, manual GCash/BDO/BPI verification, J&T order tracking, and restoration/customs intake. Cloudflare Workers + Render.',
+      'Thrifted fashion storefront with full admin suite: product management, manual GCash/BDO/BPI verification, J&T order tracking, and restoration/customs intake. Cloudflare Workers + Render for backend.',
   },
   meishortsai: {
     name: 'MeiShortsAI',
@@ -116,7 +116,7 @@ const projects = {
       { icon: <SiCloudflare size="16" />, label: 'Cloudflare Workers API' },
     ],
     description:
-      'Cinematic short-drama streaming for VibeShort. Ken Burns hero, genre-aware search, custom HLS player with PiP, My List & continue watching, and autoplay-next for binge sessions.',
+      'Cinematic short-drama streaming integrated with MeiShortsAPI. Ken Burns hero, genre-aware search, custom HLS player with PiP, My List & continue watching, and autoplay-next for binge sessions.',
   },
 };
 
