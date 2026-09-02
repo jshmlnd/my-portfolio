@@ -281,7 +281,7 @@ const Repositories = () => {
         {/* Header */}
         <div className="flex flex-col lg:flex-row lg:items-end justify-between gap-6">
           <div className="space-y-3">
-            <p className="mono-label">02 — Selected Work</p>
+            <p className="mono-label">02 — Repositories</p>
             <h2 className="text-[32px] sm:text-[40px] font-black tracking-[-0.03em] leading-none text-white">
               Design. <span className="text-zinc-500">Develop.</span>
             Deploy.</h2>
