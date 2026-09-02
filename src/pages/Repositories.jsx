@@ -1,7 +1,7 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
-import { GitCommitHorizontal, FolderGit, Copy, Check, ExternalLink, Globe, Layers, Server, RefreshCw, Lock, Monitor } from 'lucide-react';
+import { FolderGit, Copy, Check, ExternalLink, Globe, Layers, Server, RefreshCw, Lock, Monitor, Clock } from 'lucide-react';
 import {
   SiReact,
   SiTailwindcss,
@@ -166,9 +166,12 @@ const Repositories = () => {
   const [repos, setRepos] = useState([]);
   const [reposLoading, setReposLoading] = useState(true);
   const [reposError, setReposError] = useState(null);
+  const [lastFetched, setLastFetched] = useState(null);
+  const [isRefreshing, setIsRefreshing] = useState(false);
   const revealRef = useReveal();
-
-
+  const abortRef = useRef(null);
+  const intervalRef = useRef(null);
+  const POLL_INTERVAL = 60_000; // 1 minute
 
   const handleCopy = () => {
     const text = activeProject?.url || activeProject?.name || '';
@@ -179,38 +182,54 @@ const Repositories = () => {
   };
 
   // Fetch repositories from Cloudflare Worker API
-  useEffect(() => {
-    let cancelled = false;
-    setReposLoading(true);
+  const fetchRepos = useCallback(async (isPoll = false) => {
+    // Cancel any in-flight request
+    if (abortRef.current) abortRef.current.abort();
+    const controller = new AbortController();
+    abortRef.current = controller;
+
+    if (!isPoll) setReposLoading(true);
     setReposError(null);
-    fetch(REPOS_API)
-      .then((res) => {
-        if (!res.ok) throw new Error(`HTTP ${res.status}`);
-        return res.json();
-      })
-      .then((json) => {
-        if (cancelled) return;
-        const data = Array.isArray(json.data) ? json.data : Array.isArray(json) ? json : [];
-        setRepos(data);
-        // auto-select first enriched repo if current selection not in list
-        setSelected((prev) => {
-          if (data.length && !data.find((r) => r.name === prev)) {
-            const preferred = data.find((r) => enrichedByRepo[r.name]) || data[0];
-            return preferred ? preferred.name : prev;
-          }
-          return prev;
-        });
-      })
-      .catch((err) => {
-        if (!cancelled) setReposError(err.message || 'Failed to fetch');
-      })
-      .finally(() => {
-        if (!cancelled) setReposLoading(false);
+
+    try {
+      const res = await fetch(REPOS_API, { signal: controller.signal });
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const json = await res.json();
+      const data = Array.isArray(json.data) ? json.data : Array.isArray(json) ? json : [];
+      setRepos(data);
+      setLastFetched(new Date());
+      // auto-select first enriched repo if current selection not in list
+      setSelected((prev) => {
+        if (data.length && !data.find((r) => r.name === prev)) {
+          const preferred = data.find((r) => enrichedByRepo[r.name]) || data[0];
+          return preferred ? preferred.name : prev;
+        }
+        return prev;
       });
-    return () => {
-      cancelled = true;
-    };
+    } catch (err) {
+      if (err.name !== 'AbortError') {
+        setReposError(err.message || 'Failed to fetch');
+      }
+    } finally {
+      if (!isPoll) setReposLoading(false);
+      setIsRefreshing(false);
+    }
   }, []);
+
+  // Initial fetch + polling
+  useEffect(() => {
+    fetchRepos();
+    intervalRef.current = setInterval(() => fetchRepos(true), POLL_INTERVAL);
+    return () => {
+      clearInterval(intervalRef.current);
+      if (abortRef.current) abortRef.current.abort();
+    };
+  }, [fetchRepos]);
+
+  const handleManualRefresh = () => {
+    setIsRefreshing(true);
+    fetchRepos();
+  };
 
   const activeRepo = repos.find((r) => r.name === selected) || null;
   const enriched = selected ? enrichedByRepo[selected] : null;
@@ -281,18 +300,28 @@ const Repositories = () => {
         {/* Header */}
         <div className="flex flex-col lg:flex-row lg:items-end justify-between gap-6">
           <div className="space-y-3">
-            <p className="mono-label">02 — Selected Work</p>
+            <p className="mono-label">02 — Work</p>
             <h2 className="text-[32px] sm:text-[40px] font-black tracking-[-0.03em] leading-none text-white">
-              Products <span className="text-zinc-500">Deployed.</span>
-            </h2>
+              Design. <span className="text-zinc-500">Develop.</span>
+            Deploy.</h2>
             <p className="max-w-[560px] text-[14px] leading-6 text-zinc-400">
               Fetched live from my very own <span className="text-zinc-300 font-mono text-xs">GithubRepositoryAPI</span> — fullstack websites, API's, and mobile apps. Select a
               repository to inspect the stack and preview the live site.
             </p>
           </div>
           <div className="hidden sm:flex items-center gap-2 font-mono text-[11px] tracking-wide text-zinc-500">
-            <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-            {reposLoading ? 'Loading…' : reposError ? 'Offline · fallback' : `${repos.length} repositories · Live`}
+            <span className={`w-2 h-2 rounded-full ${reposError ? 'bg-red-500' : 'bg-emerald-500 animate-pulse'}`} />
+            {reposLoading ? 'Loading…' : reposError ? 'Offline · fallback' : (
+              <span className="flex items-center gap-1.5">
+                {repos.length} Repositories 
+                {lastFetched && (
+                  <span className="flex items-center gap-1 text-zinc-600">
+                    <Clock size={12} />
+                    {lastFetched.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
+                  </span>
+                )}
+              </span>
+            )}
           </div>
         </div>
 
@@ -309,13 +338,20 @@ const Repositories = () => {
                   {sidebarItems.length}
                 </span>
               </div>
-              <GitCommitHorizontal size={14} className="text-zinc-600" />
+              <button
+                onClick={handleManualRefresh}
+                disabled={reposLoading}
+                className="w-6 h-6 rounded-md flex items-center justify-center text-zinc-600 hover:text-zinc-300 hover:bg-[#1a1a1e] transition-colors disabled:opacity-40"
+                title="Refresh repositories"
+              >
+                <RefreshCw size={13} className={isRefreshing ? 'animate-spin' : ''} />
+              </button>
             </div>
 
             <div className="p-2">
               <div className="px-2 py-2 flex items-center justify-between">
                 <p className="font-mono text-[10px] tracking-widest uppercase text-zinc-600">jshmlnd</p>
-                {reposLoading && <span className="w-3 h-3 rounded-full border-2 border-zinc-700 border-t-white animate-spin" />}
+                {(reposLoading || isRefreshing) && <span className="w-3 h-3 rounded-full border-2 border-zinc-700 border-t-white animate-spin" />}
               </div>
               {reposLoading ? (
                 <div className="space-y-2 p-2">
@@ -326,7 +362,15 @@ const Repositories = () => {
               ) : reposError ? (
                 <div className="mx-2 p-3 rounded-xl bg-amber-500/10 border border-amber-500/20 text-amber-200">
                   <p className="font-mono text-[11px]">Failed to load: {reposError}</p>
-                  <p className="text-[11px] text-amber-200/70 mt-1">Showing fallback enriched repos.</p>
+                  <div className="flex items-center gap-2 mt-2">
+                    <button
+                      onClick={handleManualRefresh}
+                      className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-amber-500/20 border border-amber-500/30 font-mono text-[11px] text-amber-200 hover:bg-amber-500/30 transition-colors"
+                    >
+                      <RefreshCw size={10} className={isRefreshing ? 'animate-spin' : ''} /> Retry
+                    </button>
+                    <span className="text-[11px] text-amber-200/50">Showing fallback repos.</span>
+                  </div>
                 </div>
               ) : null}
               {!reposLoading && (

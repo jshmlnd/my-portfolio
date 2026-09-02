@@ -1,5 +1,5 @@
-import { useState, useEffect } from 'react';
-import { Copy, Check, ExternalLink, Package, Box, Layers, Cpu, Database, Terminal, FileCode2, Globe } from 'lucide-react';
+import { useState, useEffect, useCallback, useRef } from 'react';
+import { Copy, Check, ExternalLink, Package, Box, Layers, Cpu, Database, Terminal, FileCode2, Globe, RefreshCw, Clock } from 'lucide-react';
 import { siNpm, siGithub } from 'simple-icons';
 import { useReveal } from '../hooks/useReveal';
 
@@ -14,7 +14,12 @@ const NpmPackage = () => {
   const [packages, setPackages] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [lastFetched, setLastFetched] = useState(null);
+  const [isRefreshing, setIsRefreshing] = useState(false);
   const revealRef = useReveal();
+  const abortRef = useRef(null);
+  const intervalRef = useRef(null);
+  const POLL_INTERVAL = 60_000; // 1 minute
 
   const handleCopy = (text, id) => {
     navigator.clipboard.writeText(text);
@@ -22,41 +27,62 @@ const NpmPackage = () => {
     setTimeout(() => setCopied(null), 2000);
   };
 
-  useEffect(() => {
-    let cancelled = false;
-    setLoading(true);
+  // Fetch packages from NPM Worker API
+  const fetchPackages = useCallback(async (isPoll = false) => {
+    // Cancel any in-flight request
+    if (abortRef.current) abortRef.current.abort();
+    const controller = new AbortController();
+    abortRef.current = controller;
+
+    if (!isPoll) setLoading(true);
     setError(null);
-    fetch(NPM_REGISTRY_PACKAGES)
-      .then((r) => {
-        if (!r.ok) throw new Error(`HTTP ${r.status}`);
-        return r.json();
-      })
-      .then((json) => {
-        if (cancelled) return;
-        const pkgs = json.data?.packages || json.packages || [];
-        setPackages(pkgs);
-        const first = pkgs[0];
-        if (first) {
-          setPkg(first);
-          // fetch detail for keywords/versions/readme
-          fetch(NPM_PACKAGE_DETAIL(first.name))
-            .then((r) => (r.ok ? r.json() : null))
-            .then((d) => {
-              if (!cancelled && d?.data) setDetail(d.data);
-            })
-            .catch(() => {});
+
+    try {
+      const res = await fetch(NPM_REGISTRY_PACKAGES, { signal: controller.signal });
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const json = await res.json();
+      const pkgs = json.data?.packages || json.packages || [];
+      setPackages(pkgs);
+      setLastFetched(new Date());
+
+      // Auto-select first package and fetch its detail
+      const first = pkgs[0];
+      if (first) {
+        setPkg((prev) => prev || first);
+        try {
+          const detailRes = await fetch(NPM_PACKAGE_DETAIL(first.name), { signal: controller.signal });
+          if (detailRes.ok) {
+            const d = await detailRes.json();
+            if (d?.data) setDetail(d.data);
+          }
+        } catch {
+          // Detail fetch is non-critical — ignore
         }
-      })
-      .catch((e) => {
-        if (!cancelled) setError(e.message || 'Failed to fetch packages');
-      })
-      .finally(() => {
-        if (!cancelled) setLoading(false);
-      });
-    return () => {
-      cancelled = true;
-    };
+      }
+    } catch (err) {
+      if (err.name !== 'AbortError') {
+        setError(err.message || 'Failed to fetch packages');
+      }
+    } finally {
+      if (!isPoll) setLoading(false);
+      setIsRefreshing(false);
+    }
   }, []);
+
+  // Initial fetch + polling
+  useEffect(() => {
+    fetchPackages();
+    intervalRef.current = setInterval(() => fetchPackages(true), POLL_INTERVAL);
+    return () => {
+      clearInterval(intervalRef.current);
+      if (abortRef.current) abortRef.current.abort();
+    };
+  }, [fetchPackages]);
+
+  const handleManualRefresh = () => {
+    setIsRefreshing(true);
+    fetchPackages();
+  };
 
   const displayPkg = pkg || {
     name: '@zjkm666/scraperapi',
@@ -86,7 +112,7 @@ const NpmPackage = () => {
         {/* Header */}
         <div className="flex flex-col lg:flex-row lg:items-end justify-between gap-6">
           <div className="space-y-3">
-            <p className="mono-label">03 — Packages · Open Source</p>
+            <p className="mono-label">03 — Packages</p>
             <h2 className="text-[32px] sm:text-[40px] font-black tracking-[-0.03em] leading-none text-white">
               Publish. <span className="text-zinc-500">Install. Ship.</span>
             </h2>
@@ -95,8 +121,19 @@ const NpmPackage = () => {
             </p>
           </div>
           <div className="hidden sm:inline-flex items-center gap-2 rounded-full border border-[#27272a] bg-[#0f0f10] px-3 py-1.5 font-mono text-[11px] tracking-wide text-zinc-500">
-            <span className="w-2 h-2 rounded-full bg-[#CB3837] animate-pulse" />
-            {loading ? 'Loading…' : error ? 'Offline · fallback' : `npm · Public · v${displayPkg.version} · ${packages.length} pkg${packages.length !== 1 ? 's' : ''}`}
+            <span className={`w-2 h-2 rounded-full ${error ? 'bg-red-500' : 'bg-[#CB3837] animate-pulse'}`} />
+            {loading ? 'Loading…' : error ? 'Offline · fallback' : (
+              <span className="flex items-center gap-2">
+                npm · Public · v{displayPkg.version} · {packages.length} pkg{packages.length !== 1 ? 's' : ''}
+                {lastFetched && (
+                  <span className="flex items-center gap-1 text-zinc-600">
+                    <Clock size={10} />
+                    {lastFetched.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
+                  </span>
+                )}
+              </span>
+            )}
+            {isRefreshing && <span className="w-3 h-3 rounded-full border-2 border-zinc-700 border-t-[#CB3837] animate-spin" />}
           </div>
         </div>
 
@@ -116,7 +153,7 @@ const NpmPackage = () => {
                   <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 font-mono text-[10px] tracking-widest uppercase font-medium">
                     v{displayPkg.version} · Public
                   </span>
-                  {loading && <span className="w-3 h-3 rounded-full border-2 border-zinc-700 border-t-white animate-spin" />}
+                {(loading || isRefreshing) && <span className="w-3 h-3 rounded-full border-2 border-zinc-700 border-t-white animate-spin" />}
                 </div>
                 <p className="text-xs text-zinc-500 mt-1 line-clamp-2">{displayPkg.description}</p>
               </div>
@@ -284,7 +321,7 @@ const NpmPackage = () => {
           {/* Bottom meta — live */}
           <div className="px-6 py-3 bg-[#141416] border-t border-[#232326] flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2">
             <p className="font-mono text-[11px] tracking-wide text-zinc-500 flex items-center gap-2">
-              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+              <span className={`w-1.5 h-1.5 rounded-full ${error ? 'bg-red-500' : 'bg-emerald-500 animate-pulse'}`} />
               Published {timeAgo} ·{' '}
               <a
                 href={displayPkg.links?.repository?.replace('git+', '').replace('.git', '') || 'https://github.com/jshmlnd/zjkm666-package'}
@@ -296,9 +333,24 @@ const NpmPackage = () => {
               </a>
               {error && <span className="text-amber-400">· offline</span>}
             </p>
-            <span className="font-mono text-[11px] tracking-wide text-zinc-600 hidden sm:inline">
-              {packages.length} package{packages.length !== 1 ? 's' : ''} · via {NPM_API_BASE.replace('https://', '')} · {loading ? 'loading…' : 'live'}
-            </span>
+            <div className="flex items-center gap-3">
+              {lastFetched && (
+                <span className="font-mono text-[11px] tracking-wide text-zinc-600 hidden sm:flex items-center gap-1">
+                  <Clock size={10} /> {lastFetched.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
+                </span>
+              )}
+              <button
+                onClick={handleManualRefresh}
+                disabled={isRefreshing}
+                className="w-6 h-6 rounded-md flex items-center justify-center text-zinc-600 hover:text-zinc-300 hover:bg-[#1a1a1e] transition-colors disabled:opacity-40"
+                title="Refresh packages"
+              >
+                <RefreshCw size={13} className={isRefreshing ? 'animate-spin' : ''} />
+              </button>
+              <span className="font-mono text-[11px] tracking-wide text-zinc-600 hidden sm:inline">
+                {packages.length} package{packages.length !== 1 ? 's' : ''} · {loading ? 'loading…' : 'live'}
+              </span>
+            </div>
           </div>
         </div>
 
@@ -311,10 +363,16 @@ const NpmPackage = () => {
               <div className="w-9 h-9 rounded-xl bg-amber-500/20 flex items-center justify-center text-amber-400">
                 <Package size={16} />
               </div>
-              <div>
+              <div className="flex-1 min-w-0">
                 <p className="text-sm font-semibold text-amber-200">Failed to load packages</p>
                 <p className="text-xs text-amber-200/70 font-mono">{error} · via {NPM_API_BASE.replace('https://', '')}</p>
               </div>
+              <button
+                onClick={handleManualRefresh}
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-amber-500/20 border border-amber-500/30 font-mono text-[11px] text-amber-200 hover:bg-amber-500/30 transition-colors shrink-0"
+              >
+                <RefreshCw size={10} className={isRefreshing ? 'animate-spin' : ''} /> Retry
+              </button>
             </div>
           ) : (
             <>
