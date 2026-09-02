@@ -286,7 +286,7 @@ const Repositories = () => {
               Products <span className="text-zinc-500">Deployed.</span>
             </h2>
             <p className="max-w-[560px] text-[14px] leading-6 text-zinc-400">
-              Live from my very own <span className="text-zinc-300 font-mono text-xs">GithubProfileAPI</span> — fullstack websites, API's, and mobile apps. Select a
+              Fetched live from my very own <span className="text-zinc-300 font-mono text-xs">GithubRepositoryAPI</span> — fullstack websites, API's, and mobile apps. Select a
               repository to inspect the stack and preview the live site.
             </p>
           </div>
