@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+kiimport { useState, useEffect } from 'react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { GitCommitHorizontal, FolderGit, Copy, Check, ExternalLink, Globe, Layers, Server, RefreshCw, Lock, Monitor } from 'lucide-react';
@@ -283,8 +283,8 @@ const Repositories = () => {
           <div className="space-y-3">
             <p className="mono-label">02 — Selected Work</p>
             <h2 className="text-[32px] sm:text-[40px] font-black tracking-[-0.03em] leading-none text-white">
-              Products <span className="text-zinc-500">Deployed.</span>
-            </h2>
+              Design. <span className="text-zinc-500">Develop.</span>
+            Deploy.</h2>
             <p className="max-w-[560px] text-[14px] leading-6 text-zinc-400">
               Fetched live from my very own <span className="text-zinc-300 font-mono text-xs">GithubRepositoryAPI</span> — fullstack websites, API's, and mobile apps. Select a
               repository to inspect the stack and preview the live site.
