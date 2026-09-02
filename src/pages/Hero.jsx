@@ -10,7 +10,7 @@ import {
   siMongodb,
 } from 'simple-icons';
 import cv from '../assets/cv/Joshua_Klein_Malonda_Resume.pdf';
-import { Download, MoveRight } from 'lucide-react';
+import { Download, MoveRight, ArrowRight } from 'lucide-react';
 
 const terminalTitle = 'jshmlnd — zsh — 80×24';
 
@@ -153,12 +153,12 @@ const Hero = () => {
               {[
                 { k: '05+', v: 'Products shipped', sub: 'Full-stack' },
                 { k: '8', v: 'Core technologies', sub: 'JS · TS · React' },
-                { k: '100%', v: 'End-to-end ownership', sub: 'Design → Deploy' },
+                { k: '100%', v: 'Reliable', sub: <><span>Designing</span> <ArrowRight size={10} /> <span>Deployment</span></> },
               ].map(({ k, v, sub }) => (
                 <div key={k} className="rounded-2xl border border-[#27272a] bg-[#141416] p-4">
                   <div className="font-mono text-lg font-semibold tracking-tight text-white">{k}</div>
                   <div className="text-xs font-medium text-zinc-300 leading-tight mt-0.5">{v}</div>
-                  <div className="font-mono text-[10px] tracking-wide uppercase text-zinc-500 mt-1">{sub}</div>
+                  <div className="font-mono text-[10px] tracking-wide uppercase text-zinc-500 mt-1 flex items-center gap-1">{sub}</div>
                 </div>
               ))}
             </div>

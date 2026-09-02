@@ -155,7 +155,7 @@ const LoadingSkeleton = () => (
   </div>
 );
 
-const MainContent = () => {
+const Repositories = () => {
   const [selected, setSelected] = useState('smors-saas');
   const [readmeContent, setReadmeContent] = useState('');
   const [readmeLoading, setReadmeLoading] = useState(false);
@@ -644,4 +644,4 @@ const MainContent = () => {
   );
 };
 
-export default MainContent;
+export default Repositories;

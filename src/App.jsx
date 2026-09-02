@@ -1,6 +1,6 @@
 import HeroSection from './pages/Hero'
 import Navbar from './pages/Navbar'
-import MainContent from './pages/MainContent'
+import Repositories from './pages/Repositories'
 import NpmPackage from './pages/NpmPackage'
 import Certifications from './pages/Certifications'
 import Footer from './pages/Footer'
@@ -19,7 +19,7 @@ function App() {
       <SoundProvider />
       <Navbar />
       <HeroSection />
-      <MainContent />
+      <Repositories />
       <NpmPackage />
       <Certifications />
       <Footer />

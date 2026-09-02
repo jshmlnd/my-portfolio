@@ -2,24 +2,24 @@ import { useCallback, useRef, useEffect } from 'react';
 
 const AudioContext = window.AudioContext || window.webkitAudioContext;
 
-let audioContext = null;
-let masterGain = null;
+// Create AudioContext eagerly on module load (startup)
+// It will be in 'suspended' state until user interaction resumes it
+let audioContext = new AudioContext();
+let masterGain = audioContext.createGain();
+masterGain.gain.value = 0.15;
+masterGain.connect(audioContext.destination);
 
-const initAudio = () => {
-  if (!audioContext) {
-    audioContext = new AudioContext();
-    masterGain = audioContext.createGain();
-    masterGain.gain.value = 0.15;
-    masterGain.connect(audioContext.destination);
-  }
+const ensureAudioReady = async () => {
   if (audioContext.state === 'suspended') {
-    audioContext.resume();
+    await audioContext.resume();
   }
 };
 
-const playTone = (frequency, duration, type = 'sine', gainValue = 0.15) => {
-  initAudio();
-  if (!audioContext) return;
+const playTone = async (frequency, duration, type = 'sine', gainValue = 0.15) => {
+  await ensureAudioReady();
+  // Don't schedule oscillators while context is suspended —
+  // currentTime is frozen so they'd expire before playback starts.
+  if (!audioContext || audioContext.state === 'suspended') return;
 
   const oscillator = audioContext.createOscillator();
   const gainNode = audioContext.createGain();
@@ -37,23 +37,23 @@ const playTone = (frequency, duration, type = 'sine', gainValue = 0.15) => {
   oscillator.stop(audioContext.currentTime + duration);
 };
 
-const playClickSound = () => {
-  playTone(800, 0.08, 'square', 0.12);
+const playClickSound = async () => {
+  await playTone(800, 0.08, 'square', 0.12);
   setTimeout(() => playTone(600, 0.06, 'square', 0.08), 30);
 };
 
-const playHoverSound = () => {
-  playTone(1200, 0.04, 'sine', 0.06);
+const playHoverSound = async () => {
+  await playTone(1200, 0.08, 'sine', 0.4);
 };
 
-const playSuccessSound = () => {
-  playTone(523.25, 0.1, 'sine', 0.1);
+const playSuccessSound = async () => {
+  await playTone(523.25, 0.1, 'sine', 0.1);
   setTimeout(() => playTone(659.25, 0.1, 'sine', 0.1), 60);
   setTimeout(() => playTone(783.99, 0.15, 'sine', 0.12), 120);
 };
 
-const playErrorSound = () => {
-  playTone(300, 0.15, 'sawtooth', 0.12);
+const playErrorSound = async () => {
+  await playTone(300, 0.15, 'sawtooth', 0.12);
   setTimeout(() => playTone(250, 0.15, 'sawtooth', 0.1), 80);
 };
 
@@ -85,11 +85,20 @@ export const useSound = () => {
   }, []);
 
   useEffect(() => {
-    const handleInteraction = () => {
-      initAudio();
+    let initialized = false;
+
+    const handleInteraction = async () => {
+      if (initialized) return;
+      initialized = true;
+      // AudioContext already created on startup, just resume it
+      if (audioContext?.state === 'suspended') {
+        await audioContext.resume();
+      }
+      await playTone(880, 0.08, 'sine', 0.15);
       document.removeEventListener('click', handleInteraction);
       document.removeEventListener('keydown', handleInteraction);
     };
+    // Only click/keydown for confirmation tone - play functions handle resume themselves
     document.addEventListener('click', handleInteraction, { once: true, passive: true });
     document.addEventListener('keydown', handleInteraction, { once: true, passive: true });
 
@@ -108,16 +117,37 @@ export const useSoundProvider = () => {
   useEffect(() => {
     const handleClick = (e) => {
       const target = e.target.closest('button, a, [role="button"], input[type="button"], input[type="submit"], select, summary, .cursor-pointer');
-      if (target) playClick();
+      if (target) {
+        const id = target.dataset.soundId;
+        // If this element was recently hovered (mobile tap), cancel pending hover sound
+        if (id && hoverTimeoutRef.current?.id === id) {
+          clearTimeout(hoverTimeoutRef.current.timeout);
+          hoverTimeoutRef.current = null;
+        }
+        playClick();
+      }
     };
 
+    const hoverTimeoutRef = { current: null };
+    const lastHoverRef = { current: null, time: 0 };
     const handleMouseEnter = (e) => {
       const target = e.target.closest('button, a, [role="button"], input[type="button"], input[type="submit"], select, summary, .cursor-pointer');
-      if (target) {
-        const id = target.id || target.dataset.soundId || Math.random().toString(36).slice(2);
-        target.dataset.soundId = id;
+      if (!target) return;
+      const id = target.id || target.dataset.soundId || Math.random().toString(36).slice(2);
+      target.dataset.soundId = id;
+      
+      // Debounce rapid hovers on same element
+      if (lastHoverRef.current === id && Date.now() - lastHoverRef.time < 350) return;
+      lastHoverRef.current = id;
+      lastHoverRef.time = Date.now();
+
+      // Delay hover sound slightly - if click follows (mobile tap), cancel it
+      const timeout = setTimeout(() => {
+        hoverTimeoutRef.current = null;
         playHover(id);
-      }
+      }, 50);
+      
+      hoverTimeoutRef.current = { id, timeout };
     };
 
     document.addEventListener('click', handleClick, { passive: true });
@@ -126,6 +156,7 @@ export const useSoundProvider = () => {
     return () => {
       document.removeEventListener('click', handleClick);
       document.removeEventListener('mouseover', handleMouseEnter);
+      if (hoverTimeoutRef.current) clearTimeout(hoverTimeoutRef.current.timeout);
     };
   }, [playClick, playHover]);
 
