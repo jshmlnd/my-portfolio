@@ -22,7 +22,7 @@ const Certifications = () => {
   const revealRef = useReveal();
 
   return (
-    <section id="certs" className="bg-[#09090b] border-t border-[#1f1f23] px-6 py-16 lg:py-20">
+    <section id="certs" className="bg-[#09090b] border-t border-[#1f1f23] px-6 py-16 lg:py-20 min-h-screen">
       <div className="max-w-[1160px] mx-auto flex flex-col gap-8 reveal" ref={revealRef}>
         <div className="flex flex-col lg:flex-row lg:items-end justify-between gap-6">
           <div className="space-y-3">
