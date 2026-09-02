@@ -21,8 +21,11 @@ const Navbar = () => {
   const [hoverRect, setHoverRect] = useState({ left: 0, width: 0 });
 
   useEffect(() => {
-    const onScroll = () => setScrolled(window.scrollY > 8);
-    window.addEventListener('scroll', onScroll);
+    const onScroll = () => {
+      setScrolled(window.scrollY > 8);
+      setMobileOpen(false);
+    };
+    window.addEventListener('scroll', onScroll, { passive: true });
     return () => window.removeEventListener('scroll', onScroll);
   }, []);
 
@@ -261,6 +264,7 @@ const Navbar = () => {
             href="https://www.linkedin.com/in/jshmlnd/"
             target="_blank"
             rel="noopener noreferrer"
+            aria-label="Hire me on LinkedIn"
             className="hidden sm:inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white text-black text-[13px] font-medium hover:bg-zinc-100 transition-colors"
           >
             Hire Me <ArrowUpRight size={14} />
@@ -285,7 +289,7 @@ const Navbar = () => {
       {mobileOpen && (
         <div className="md:hidden border-t border-[#232326] bg-[#0f0f10]/95 backdrop-blur-xl animate-slide-down">
           <div className="px-6 py-4 flex flex-col gap-2">
-            {navItems.map(({ label, href }) => (
+            {navItems.map(({ label, href, id }) => (
               <a
                 key={label}
                 href={href}
@@ -294,7 +298,7 @@ const Navbar = () => {
                   scrollTo(href);
                 }}
                 className={`px-4 py-3 rounded-xl text-sm font-medium border transition-colors ${
-                  active === href.slice(1)
+                  active === id
                     ? 'bg-white text-black border-white'
                     : 'bg-[#18181b] border-[#27272a] text-zinc-300 hover:border-[#3f3f46] hover:text-white'
                 }`}
