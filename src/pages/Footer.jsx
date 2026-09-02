@@ -117,6 +117,18 @@ const Footer = () => {
                 </li>
                 <li>
                   <a
+                    href="#contact"
+                    onClick={(e) => {
+                      e.preventDefault();
+                      scrollTo('#contact');
+                    }}
+                    className="text-zinc-500 hover:text-white transition-colors"
+                  >
+                    Contact
+                  </a>
+                </li>
+                <li>
+                  <a
                     href="https://github.com/jshmlnd"
                     target="_blank"
                     rel="noopener noreferrer"

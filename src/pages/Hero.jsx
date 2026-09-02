@@ -125,7 +125,7 @@ const Hero = () => {
                 className="inline-flex items-center gap-2 px-6 py-3 rounded-full bg-white text-black text-sm font-semibold hover:bg-zinc-100 transition-colors"
               >
                 View selected work
-                <span className="text-zinc-500"><MoveRight size={14} strokeWidth={3} /></span>
+                <span className="text-zinc-500"><ArrowRight size={14} strokeWidth={3} /></span>
               </a>
               <a
                 href={cv}

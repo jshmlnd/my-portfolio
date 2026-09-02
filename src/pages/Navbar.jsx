@@ -1,4 +1,4 @@
-import { MoveUpRight } from 'lucide-react';
+import { ArrowUpRight } from 'lucide-react';
 import { useState, useEffect, useRef, useLayoutEffect } from 'react';
 import { siGithub } from 'simple-icons';
 
@@ -7,6 +7,7 @@ const navItems = [
   { label: 'Repos', href: '#projects', id: 'projects' },
   { label: 'Package', href: '#packages', id: 'packages' },
   { label: 'Certs', href: '#certs', id: 'certs' },
+  { label: 'Contact', href: '#contact', id: 'contact' },
 ];
 
 const Navbar = () => {
@@ -262,8 +263,7 @@ const Navbar = () => {
             rel="noopener noreferrer"
             className="hidden sm:inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white text-black text-[13px] font-medium hover:bg-zinc-100 transition-colors"
           >
-            Contact
-            <span className="hidden xl:inline text-zinc-500 font-mono text-[11px]"><MoveUpRight size="12px" /></span>
+            Hire Me <ArrowUpRight size={14} />
           </a>
 
           {/* Mobile toggle */}

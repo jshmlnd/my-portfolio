@@ -3,6 +3,7 @@ import Navbar from './pages/Navbar'
 import Repositories from './pages/Repositories'
 import NpmPackage from './pages/NpmPackage'
 import Certifications from './pages/Certifications'
+import Contact from './pages/Contact'
 import Footer from './pages/Footer'
 import CustomCursor from './components/CustomCursor'
 import { useSoundProvider } from './hooks/useSound'
@@ -22,6 +23,7 @@ function App() {
       <Repositories />
       <NpmPackage />
       <Certifications />
+      <Contact />
       <Footer />
     </div>
   )
