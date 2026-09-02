@@ -88,7 +88,7 @@ const NpmPackage = () => {
           <div className="space-y-3">
             <p className="mono-label">03 — Packages · Open Source</p>
             <h2 className="text-[32px] sm:text-[40px] font-black tracking-[-0.03em] leading-none text-white">
-              Publish. <span className="text-zinc-500">Install. Ship.</span>
+              Install. <span className="text-zinc-500">Run. Deploy.</span>
             </h2>
             <p className="max-w-[560px] text-[14px] leading-6 text-zinc-400">
               My first npm package — a CLI + library to generate customizable Express scraping APIs from any URL. Declarative endpoints, Playwright for JS-rendered sites, and built-in cache.
