@@ -159,14 +159,14 @@ const Contact = () => {
                 </div>
 
                 {/* Submit */}
-                <div className="md:col-span-2 flex items-center justify-between gap-4 pt-2">
+                <div className="md:col-span-2 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-4 pt-2">
                   <p className="font-mono text-[11px] text-zinc-600">
                     * I typically respond within 24-48 hours
                   </p>
                   <button
                     type="submit"
                     disabled={status === 'sending'}
-                    className="inline-flex items-center gap-2 px-6 py-3 rounded-lg bg-white text-black font-semibold text-sm hover:bg-zinc-200 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="inline-flex items-center justify-center gap-2 px-6 py-3 rounded-lg bg-white text-black font-semibold text-sm hover:bg-zinc-200 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     {status === 'sending' ? (
                       <>

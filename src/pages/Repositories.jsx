@@ -168,6 +168,7 @@ const Repositories = () => {
   const [reposError, setReposError] = useState(null);
   const [lastFetched, setLastFetched] = useState(null);
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [sidebarOpen, setSidebarOpen] = useState(false);
   const revealRef = useReveal();
   const abortRef = useRef(null);
   const intervalRef = useRef(null);
@@ -302,7 +303,7 @@ const Repositories = () => {
           <div className="space-y-3">
             <p className="mono-label">02 — Work</p>
             <h2 className="text-[32px] sm:text-[40px] font-black tracking-[-0.03em] leading-none text-white">
-              Design. <span className="text-zinc-500">Develop.</span>
+              Design. <span className="text-zinc-500">Develop. </span>
             Deploy.</h2>
             <p className="max-w-[560px] text-[14px] leading-6 text-zinc-400">
               Fetched live from my very own <span className="text-zinc-300 font-mono text-xs">GithubRepositoryAPI</span> — fullstack websites, API's, and mobile apps. Select a
@@ -325,9 +326,36 @@ const Repositories = () => {
           </div>
         </div>
 
+        {/* Mobile sidebar toggle */}
+        <button
+          onClick={() => setSidebarOpen((v) => !v)}
+          className="lg:hidden w-full flex items-center justify-between px-4 py-3 rounded-xl border border-[#27272a] bg-[#0f0f10] text-zinc-300 hover:bg-[#141416] transition-colors"
+        >
+          <div className="flex items-center gap-2">
+            <FolderGit size={14} className="text-zinc-500" />
+            <span className="font-mono text-[11px] tracking-widest uppercase font-semibold">
+              Repositories
+            </span>
+            <span className="font-mono text-[10px] px-1.5 py-0.5 rounded bg-[#1a1a1e] border border-[#27272a] text-zinc-500">
+              {sidebarItems.length}
+            </span>
+          </div>
+          <svg
+            viewBox="0 0 24 24"
+            width="16"
+            height="16"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+            className={`text-zinc-500 transition-transform ${sidebarOpen ? 'rotate-180' : ''}`}
+          >
+            <path d="M6 9l6 6 6-6" />
+          </svg>
+        </button>
+
         <div className="grid lg:grid-cols-[300px_1fr] gap-6 items-start">
           {/* Sidebar - Repositories (fetched live) */}
-          <aside className="rounded-2xl border border-[#27272a] bg-[#0f0f10] overflow-hidden">
+          <aside className={`rounded-2xl border border-[#27272a] bg-[#0f0f10] overflow-hidden ${sidebarOpen ? 'block' : 'hidden lg:block'}`}>
             <div className="px-4 py-3 border-b border-[#232326] flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <FolderGit size={14} className="text-zinc-500" />

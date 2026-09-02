@@ -63,7 +63,7 @@ const Footer = () => {
             </div>
           </div>
 
-          <div className="flex gap-10 sm:gap-16">
+          <div className="flex flex-col sm:flex-row gap-8 sm:gap-10 lg:gap-16">
             <div className="space-y-3">
               <p className="font-mono text-[11px] tracking-widest uppercase font-semibold text-zinc-400">Navigate</p>
               <ul className="space-y-2 text-sm">

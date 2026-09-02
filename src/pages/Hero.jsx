@@ -149,7 +149,7 @@ const Hero = () => {
             </div>
 
             {/* Capability bar */}
-            <div className="grid grid-cols-3 gap-3 pt-2 animate-fade-in-up delay-400">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-2 animate-fade-in-up delay-400">
               {[
                 { k: '05+', v: 'Products shipped', sub: 'Full-stack' },
                 { k: '8', v: 'Core technologies', sub: 'JS · TS · React' },
