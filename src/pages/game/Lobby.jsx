@@ -18,13 +18,11 @@ export default function Lobby() {
   const [error, setError] = useState('');
   const [copied, setCopied] = useState(false);
   const [connecting, setConnecting] = useState(false);
-  const [isConnected, setIsConnected] = useState(false);
   const [rounds, setRounds] = useState(3);
   const [timePerRound, setTimePerRound] = useState(60);
   const [linkCopied, setLinkCopied] = useState(false);
   const [searchParams] = useSearchParams();
   const socketRef = useRef(null);
-  const autoJoinAttempted = useRef(false);
 
   // Connect to server
   useEffect(() => {
@@ -34,11 +32,9 @@ export default function Lobby() {
 
     s.on('connect', () => {
       setConnecting(false);
-      setIsConnected(true);
     });
     s.on('connect_error', () => {
       setConnecting(false);
-      setIsConnected(false);
       setError('Cannot connect to server. Is it running?');
     });
 
@@ -104,19 +100,6 @@ export default function Lobby() {
       }
     });
   }, [joinCode, playerName]);
-
-  useEffect(() => {
-    if (
-      autoJoinAttempted.current ||
-      !isConnected ||
-      joinCode.length !== 5 ||
-      !playerName.trim() ||
-      searchParams.get('join')?.toUpperCase() !== joinCode
-    ) return;
-
-    autoJoinAttempted.current = true;
-    joinLobby();
-  }, [isConnected, joinCode, playerName, searchParams, joinLobby]);
 
   const startGame = () => {
     if (socketRef.current) socketRef.current.emit('start-game');
