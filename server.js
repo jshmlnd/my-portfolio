@@ -63,7 +63,7 @@ function calculateRoundScores(lobby) {
   const pts = [20, 10, 5];
   const results = [];
   winners.forEach((p, i) => {
-    const score = i < 3 ? pts[i] : 1;
+    const score = i < 3 ? pts[i] : 2;
     p.roundScore = score;
     p.totalScore = (p.totalScore || 0) + score;
     results.push({ id: p.id, name: p.name, score, totalScore: p.totalScore, finishOrder: i + 1, status: 'won' });
