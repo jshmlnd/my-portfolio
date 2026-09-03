@@ -2,10 +2,22 @@ node_modules
 .git
 *.md
 .vscode
-src
 assets
 public
 index.html
 vite.config.js
-package.json
+src/App.jsx
+src/main.jsx
+src/index.css
+src/components
+src/hooks
+src/pages/Certifications.jsx
+src/pages/Contact.jsx
+src/pages/Footer.jsx
+src/pages/Hero.jsx
+src/pages/Navbar.jsx
+src/pages/NpmPackage.jsx
+src/pages/Repositories.jsx
+src/pages/game/Game.jsx
+src/pages/game/Lobby.jsx
 
