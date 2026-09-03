@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { ArrowLeft, X, Users, Coffee, Gamepad2, PartyPopper, Timer, Trophy, Skull, Hourglass, Medal } from 'lucide-react';
 import { io } from 'socket.io-client';
-import { TARGET_WORDS, WORD_CLUES, EPOCH_START, GAME_CONFIG, normalizeWord } from './wordbank';
+import { TARGET_WORDS, WORD_CLUES, EPOCH_START, GAME_CONFIG, getWordLetters, normalizeWord } from './wordbank';
 
 // ─── Helpers ───────────────────────────────────────────────────────
 function getDailyWord() {
@@ -118,7 +118,8 @@ const Game = () => {
   const [redirectCountdown, setRedirectCountdown] = useState(0);
 
   const target = useMemo(() => isMultiplayer ? (multiplayerWord || 'A'.repeat(wordLength)) : getDailyWord(), [isMultiplayer, multiplayerWord, wordLength]);
-  const wordLen = target.replace(/\s/g, '').length;
+  const wordLetters = useMemo(() => getWordLetters(target), [target]);
+  const wordLen = wordLetters.length;
   const wordBreaks = useMemo(() => {
     const breaks = new Set();
     let letterIndex = 0;
@@ -516,11 +517,11 @@ const Game = () => {
           {(() => {
             const maxGuesses = wordLen + 1;
             const tileGap = 5;
-            const boardWidth = Math.min(460, Math.max(0, viewportWidth - 32));
+            const boardWidth = Math.min(460, Math.max(0, viewportWidth - 48));
             const tileSize = Math.max(1, Math.min(68, Math.floor((boardWidth - (wordLen - 1) * tileGap - wordBreaks.size * 8) / wordLen)));
-            const tileFontSize = Math.max(12, Math.min(24, Math.floor(tileSize * 0.42)));
+            const tileFontSize = Math.max(8, Math.min(24, Math.floor(tileSize * 0.42)));
             return (
-              <div className="flex w-full max-w-[460px] flex-col gap-[5px] mb-6" style={{ width: boardWidth }}>
+              <div className="flex w-full max-w-[460px] flex-col items-center gap-[5px] mb-6" style={{ width: boardWidth }}>
                 {Array.from({ length: maxGuesses }).map((_, rowIdx) => {
                   const guess = guesses[rowIdx] || (rowIdx === guesses.length && gameStatus === 'playing' ? currentInput : '');
                   const isFlipping = flippingRow === rowIdx;
@@ -529,7 +530,7 @@ const Game = () => {
 
                   return (
                     <div key={rowIdx} className={`flex gap-[5px] ${isShaking ? 'animate-[shake_0.5s_ease-in-out]' : ''}`}>
-                      {Array.from({ length: wordLen }).map((_, colIdx) => {
+                      {wordLetters.map((_, colIdx) => {
                         const letter = guess[colIdx] || '';
                         const isFlippingRow = isFlipping;
                         const isAlreadySubmitted = evalRow && !isFlippingRow;

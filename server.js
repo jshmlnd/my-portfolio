@@ -16,7 +16,7 @@ const io = new Server(server, {
 });
 
 // ─── Word Bank (same as client) ────────────────────────────────────
-import { TARGET_WORDS, WORD_CLUES, normalizeWord } from './src/pages/game/wordbank.js';
+import { TARGET_WORDS, WORD_CLUES, getWordLetters, normalizeWord } from './src/pages/game/wordbank.js';
 
 // ─── In-memory lobby storage ───────────────────────────────────────
 const lobbies = new Map();
@@ -85,7 +85,7 @@ function getLeaderboard(lobby) {
 function startRound(io, lobby) {
   lobby.currentRound = (lobby.currentRound || 0) + 1;
   lobby.target = lobby.words[lobby.currentRound - 1];
-  lobby.wordLength = lobby.target.replace(/\s/g, '').length;
+  lobby.wordLength = getWordLetters(lobby.target).length;
   lobby.clue = lobby.clues[lobby.currentRound - 1];
   lobby.timeRemaining = lobby.settings.timePerRound;
   lobby.finishCount = 0;

@@ -65,6 +65,10 @@ export function normalizeWord(word) {
   return word.replace(/-/g, ' ').toUpperCase();
 }
 
+export function getWordLetters(word) {
+  return normalizeWord(word).replace(/\s/g, '').split('');
+}
+
 // ─── Seed Configuration ────────────────────────────────────────────
 // Change this date to shift the entire puzzle calendar.
 // Words rotate in order from TARGET_WORDS based on days since this epoch.
