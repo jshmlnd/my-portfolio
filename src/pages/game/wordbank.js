@@ -77,7 +77,6 @@ export const EPOCH_START = new Date(Date.UTC(2026, 0, 1)); // Jan 1, 2026
 // ─── Game Configuration ────────────────────────────────────────────
 export const GAME_CONFIG = {
   maxGuesses: 6,
-  wordLength: 5,
   revealDelay: 150, // ms between each tile flip animation
   shakeDelay: 180,  // ms for shake animation on invalid guess
 };
