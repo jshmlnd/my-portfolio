@@ -66,7 +66,7 @@ export function normalizeWord(word) {
 }
 
 export function getWordLetters(word) {
-  return normalizeWord(word).replace(/\s/g, '').split('');
+  return normalizeWord(word).match(/[A-Z]/g) || [];
 }
 
 // ─── Seed Configuration ────────────────────────────────────────────

@@ -515,7 +515,7 @@ const Game = () => {
         {/* Grid */}
         <div className="flex-1 flex flex-col items-center justify-start pt-2">
           {(() => {
-            const maxGuesses = wordLen + 1;
+            const maxGuesses = GAME_CONFIG.maxGuesses;
             const tileGap = 5;
             const boardWidth = Math.min(460, Math.max(0, viewportWidth - 48));
             const tileSize = Math.max(1, Math.min(68, Math.floor((boardWidth - (wordLen - 1) * tileGap - wordBreaks.size * 8) / wordLen)));
