@@ -90,6 +90,7 @@ const Game = () => {
   const [toast, setToast] = useState('');
   const [showLeaveToast, setShowLeaveToast] = useState(false);
   const [keyStatus, setKeyStatus] = useState({});
+  const [viewportWidth, setViewportWidth] = useState(() => document.documentElement.clientWidth);
   const inputRef = useRef(null);
   const toastTimer = useRef(null);
 
@@ -254,6 +255,12 @@ const Game = () => {
     focus();
     document.addEventListener('click', focus);
     return () => document.removeEventListener('click', focus);
+  }, []);
+
+  useEffect(() => {
+    const updateViewportWidth = () => setViewportWidth(document.documentElement.clientWidth);
+    window.addEventListener('resize', updateViewportWidth);
+    return () => window.removeEventListener('resize', updateViewportWidth);
   }, []);
 
   const showToast = useCallback((message, Icon = null) => {
@@ -509,9 +516,11 @@ const Game = () => {
           {(() => {
             const maxGuesses = wordLen + 1;
             const tileGap = 5;
-            const tileSize = Math.min(68, Math.floor((460 - (wordLen - 1) * tileGap - wordBreaks.size * 8) / wordLen));
+            const boardWidth = Math.min(460, Math.max(0, viewportWidth - 32));
+            const tileSize = Math.max(1, Math.min(68, Math.floor((boardWidth - (wordLen - 1) * tileGap - wordBreaks.size * 8) / wordLen)));
+            const tileFontSize = Math.max(12, Math.min(24, Math.floor(tileSize * 0.42)));
             return (
-              <div className="flex flex-col gap-[5px] mb-6">
+              <div className="flex w-full max-w-[460px] flex-col gap-[5px] mb-6" style={{ width: boardWidth }}>
                 {Array.from({ length: maxGuesses }).map((_, rowIdx) => {
                   const guess = guesses[rowIdx] || (rowIdx === guesses.length && gameStatus === 'playing' ? currentInput : '');
                   const isFlipping = flippingRow === rowIdx;
@@ -535,8 +544,8 @@ const Game = () => {
                         return (
                           <div
                             key={colIdx}
-                            style={{ width: tileSize, height: tileSize }}
-                            className={`flex items-center justify-center rounded-xl border-2 font-mono font-bold text-2xl uppercase transition-colors duration-200 ${colorClass} ${
+                            style={{ width: tileSize, height: tileSize, fontSize: tileFontSize }}
+                            className={`flex shrink-0 items-center justify-center rounded-xl border-2 font-mono font-bold uppercase transition-colors duration-200 ${colorClass} ${
                               wordBreaks.has(colIdx) ? 'mr-2' : ''
                             } ${
                               isCurrentlyRevealing ? 'animate-[flipTile_0.3s_ease-in-out]' : ''
