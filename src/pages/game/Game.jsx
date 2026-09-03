@@ -146,6 +146,7 @@ const Game = () => {
 
     s.on('round-started', ({ wordLength: wl, roundNumber, totalRounds: tr, timeRemaining: trl, clue }) => {
       setWordLength(wl);
+      setMultiplayerWord(null);
       setCurrentRound(roundNumber);
       setTotalRounds(tr);
       setTimeRemaining(trl);
@@ -521,7 +522,7 @@ const Game = () => {
             const tileSize = Math.max(1, Math.min(68, Math.floor((boardWidth - (wordLen - 1) * tileGap - wordBreaks.size * 8) / wordLen)));
             const tileFontSize = Math.max(8, Math.min(24, Math.floor(tileSize * 0.42)));
             return (
-              <div className="flex w-full max-w-[460px] flex-col items-center gap-[5px] mb-6" style={{ width: boardWidth }}>
+              <div key={target} className="flex w-full max-w-[460px] flex-col items-center gap-[5px] mb-6" style={{ width: boardWidth }}>
                 {Array.from({ length: maxGuesses }).map((_, rowIdx) => {
                   const guess = guesses[rowIdx] || (rowIdx === guesses.length && gameStatus === 'playing' ? currentInput : '');
                   const isFlipping = flippingRow === rowIdx;
@@ -534,7 +535,7 @@ const Game = () => {
                       className={`grid ${isShaking ? 'animate-[shake_0.5s_ease-in-out]' : ''}`}
                       style={{
                         width: '100%',
-                        gridTemplateColumns: `repeat(${wordLetters.length}, minmax(0, 1fr))`,
+                        gridTemplateColumns: `repeat(${wordLen}, minmax(0, 1fr))`,
                         columnGap: tileGap,
                       }}
                     >
