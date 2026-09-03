@@ -128,24 +128,6 @@ const Footer = () => {
                     Contact
                   </a>
                 </li>
-                <li>
-                  <a
-                    href="/game"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-zinc-500 hover:text-white transition-colors inline-flex items-center gap-1"
-                  >
-                    Game <ArrowUpRight className="w-3 h-3" />
-                  </a>
-                </li>
-                <li>
-                  <a
-                    href="/lobby"
-                    className="text-emerald-500 hover:text-emerald-400 transition-colors inline-flex items-center gap-1"
-                  >
-                    Multiplayer
-                  </a>
-                </li>
               </ul>
             </div>
 
@@ -192,6 +174,14 @@ const Footer = () => {
         <div className="flex flex-col sm:flex-row items-center justify-between gap-3 py-5 border-t border-[#1f1f23] font-mono text-xs tracking-wide text-zinc-600">
           <p>© {new Date().getFullYear()} jshmlnd — All rights reserved.</p>
           <p className="flex items-center gap-2">
+            <span>
+              <a
+                href="/lobby"
+                className="text-zinc-500 hover:text-white transition-colors inline-flex items-center gap-1">
+                Create Lobby
+              </a>
+            </span>
+            <span className="hidden sm:inline w-1 h-1 rounded-full bg-zinc-700" />
             <span>Built with React</span>
             <span className="hidden sm:inline w-1 h-1 rounded-full bg-zinc-700" />
             <span className="hidden sm:inline">Deployed with love. </span>

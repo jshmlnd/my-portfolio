@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { ArrowLeft, Users, Play, Copy, Check, Loader2, Link2 } from 'lucide-react';
 import { io } from 'socket.io-client';
@@ -18,11 +18,13 @@ export default function Lobby() {
   const [error, setError] = useState('');
   const [copied, setCopied] = useState(false);
   const [connecting, setConnecting] = useState(false);
+  const [isConnected, setIsConnected] = useState(false);
   const [rounds, setRounds] = useState(3);
   const [timePerRound, setTimePerRound] = useState(60);
   const [linkCopied, setLinkCopied] = useState(false);
   const [searchParams] = useSearchParams();
   const socketRef = useRef(null);
+  const autoJoinAttempted = useRef(false);
 
   // Connect to server
   useEffect(() => {
@@ -30,9 +32,13 @@ export default function Lobby() {
     socketRef.current = s;
     setSocket(s);
 
-    s.on('connect', () => setConnecting(false));
+    s.on('connect', () => {
+      setConnecting(false);
+      setIsConnected(true);
+    });
     s.on('connect_error', () => {
       setConnecting(false);
+      setIsConnected(false);
       setError('Cannot connect to server. Is it running?');
     });
 
@@ -81,7 +87,7 @@ export default function Lobby() {
     });
   };
 
-  const joinLobby = () => {
+  const joinLobby = useCallback(() => {
     if (!playerName.trim()) return setError('Enter your name');
     if (!joinCode.trim()) return setError('Enter a lobby code');
     setError('');
@@ -96,7 +102,20 @@ export default function Lobby() {
         setError(res.error);
       }
     });
-  };
+  }, [joinCode, playerName]);
+
+  useEffect(() => {
+    if (
+      autoJoinAttempted.current ||
+      !isConnected ||
+      joinCode.length !== 5 ||
+      !playerName.trim() ||
+      searchParams.get('join')?.toUpperCase() !== joinCode
+    ) return;
+
+    autoJoinAttempted.current = true;
+    joinLobby();
+  }, [isConnected, joinCode, playerName, searchParams, joinLobby]);
 
   const startGame = () => {
     if (socketRef.current) socketRef.current.emit('start-game');
@@ -133,7 +152,7 @@ export default function Lobby() {
           <header className="flex items-center h-14 shrink-0">
             <a href="/" className="inline-flex items-center gap-2 text-zinc-500 hover:text-white transition-colors">
               <ArrowLeft size={18} />
-              <span className="font-mono text-xs tracking-wide">Leave</span>
+              <span className="font-mono text-xs tracking-wide">Back</span>
             </a>
           </header>
 
@@ -141,7 +160,7 @@ export default function Lobby() {
             <div className="w-full space-y-6">
               <div className="text-center space-y-2">
                 <h1 className="font-mono font-bold text-3xl tracking-tight text-white">
-                  Multi<span className="text-emerald-500">player</span>
+                  Create<span className="text-emerald-500"> Lobby</span>
                 </h1>
                 <p className="text-sm text-zinc-500">Create a lobby and challenge your friends</p>
               </div>
@@ -242,6 +261,21 @@ export default function Lobby() {
                 <p className="text-sm text-zinc-500">Enter the 5-letter code from your friend</p>
               </div>
 
+              {!playerName.trim() && (
+                <div className="space-y-2">
+                  <label className="font-mono text-[11px] tracking-widest uppercase text-zinc-500">Your Name</label>
+                  <input
+                    type="text"
+                    value={playerName}
+                    onChange={(e) => saveName(e.target.value)}
+                    placeholder="Enter your name..."
+                    maxLength={20}
+                    autoFocus
+                    className="w-full px-4 py-3 rounded-xl bg-[#141416] border border-[#27272a] text-sm text-white placeholder:text-zinc-600 focus:outline-none focus:border-[#3f3f46] transition-colors font-mono"
+                  />
+                </div>
+              )}
+
               <div className="space-y-2">
                 <label className="font-mono text-[11px] tracking-widest uppercase text-zinc-500">Lobby Code</label>
                 <input
@@ -250,7 +284,7 @@ export default function Lobby() {
                   onChange={(e) => setJoinCode(e.target.value.toUpperCase().slice(0, 5))}
                   placeholder="XXXXX"
                   maxLength={5}
-                  autoFocus
+                  autoFocus={!!playerName.trim()}
                   className="w-full px-4 py-4 rounded-xl bg-[#141416] border border-[#27272a] text-center text-2xl font-mono font-bold text-white tracking-[0.3em] placeholder:text-zinc-700 placeholder:tracking-[0.3em] focus:outline-none focus:border-[#3f3f46] transition-colors uppercase"
                 />
               </div>
@@ -259,7 +293,7 @@ export default function Lobby() {
 
               <button
                 onClick={joinLobby}
-                disabled={joinCode.length !== 5 || connecting}
+                disabled={!playerName.trim() || joinCode.length !== 5 || connecting}
                 className="w-full flex items-center justify-center gap-3 px-5 py-3.5 rounded-xl bg-emerald-600 text-white text-sm font-semibold hover:bg-emerald-500 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
               >
                 {connecting ? <Loader2 size={16} className="animate-spin" /> : <Users size={16} />}
