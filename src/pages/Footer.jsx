@@ -1,4 +1,5 @@
 import { siGithub, siFacebook } from 'simple-icons';
+import { ArrowUpRight } from 'lucide-react';
 
 // simple-icons removed the LinkedIn icon (v11+), so its path is inlined here
 const siLinkedin = {
@@ -129,12 +130,20 @@ const Footer = () => {
                 </li>
                 <li>
                   <a
-                    href="https://github.com/jshmlnd"
+                    href="/game"
                     target="_blank"
                     rel="noopener noreferrer"
                     className="text-zinc-500 hover:text-white transition-colors inline-flex items-center gap-1"
                   >
-                    GitHub <span className="text-xs">↗</span>
+                    Game <ArrowUpRight className="w-3 h-3" />
+                  </a>
+                </li>
+                <li>
+                  <a
+                    href="/lobby"
+                    className="text-emerald-500 hover:text-emerald-400 transition-colors inline-flex items-center gap-1"
+                  >
+                    Multiplayer
                   </a>
                 </li>
               </ul>

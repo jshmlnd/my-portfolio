@@ -259,7 +259,6 @@ const Navbar = () => {
               </svg>
             </a>
           </div>
-
           <a
             href="https://www.linkedin.com/in/jshmlnd/"
             target="_blank"
