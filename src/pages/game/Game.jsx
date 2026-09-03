@@ -419,11 +419,11 @@ const Game = () => {
         {/* Header */}
         <header className="flex items-center justify-between h-14 shrink-0">
           <a
-            href="/"
+            href="/lobby"
             className="inline-flex items-center gap-2 text-zinc-500 hover:text-white transition-colors"
           >
             <ArrowLeft size={18} />
-            <span className="font-mono text-xs tracking-wide hidden sm:inline">Portfolio</span>
+            <span className="font-mono text-xs tracking-wide hidden sm:inline">Back</span>
           </a>
 
           <h1 className="font-mono font-bold text-lg tracking-tight text-white">
