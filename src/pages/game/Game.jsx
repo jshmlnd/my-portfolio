@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { ArrowLeft, X, Users, Coffee, Gamepad2, PartyPopper, Timer, Trophy, Skull, Hourglass, Medal } from 'lucide-react';
+import { ArrowLeft, X, Users, Coffee, Gamepad2, PartyPopper, Timer, Trophy, Skull, Hourglass, Medal, Delete } from 'lucide-react';
 import { io } from 'socket.io-client';
 import { TARGET_WORDS, WORD_CLUES, EPOCH_START, GAME_CONFIG, getWordLetters, normalizeWord } from './wordbank';
 
@@ -54,11 +54,29 @@ function saveGameState(state) {
   try { localStorage.setItem('wordcraft_game', JSON.stringify(state)); } catch {}
 }
 
+const kbDelete = <Delete size={14} className="inline-block" />;
+function getPlayerIdentity() {
+  try {
+    const key = 'wc_player_id';
+    const existing = localStorage.getItem(key);
+    if (existing) return existing;
+
+    const next = globalThis.crypto && typeof globalThis.crypto.randomUUID === 'function'
+      ? globalThis.crypto.randomUUID()
+      : `player_${Date.now()}_${Math.random().toString(16).slice(2)}`;
+
+    localStorage.setItem(key, next);
+    return next;
+  } catch {
+    return `player_${Date.now()}_${Math.random().toString(16).slice(2)}`;
+  }
+}
+
 // ─── Keyboard Layout ───────────────────────────────────────────────
 const KB_ROWS = [
   ['Q', 'W', 'E', 'R', 'T', 'Y', 'U', 'I', 'O', 'P'],
   ['A', 'S', 'D', 'F', 'G', 'H', 'J', 'K', 'L'],
-  ['ENTER', 'Z', 'X', 'C', 'V', 'B', 'N', 'M', '⌫'],
+  ['ENTER', 'Z', 'X', 'C', 'V', 'B', 'N', 'M', kbDelete],
 ];
 
 // ─── Color map ─────────────────────────────────────────────────────
@@ -73,7 +91,7 @@ const KEY_COLORS = {
   correct: 'bg-emerald-600 text-white border-emerald-700',
   present: 'bg-yellow-500 text-white border-yellow-600',
   absent:  'bg-[#27272a] text-zinc-500 border-[#3f3f46]',
-  idle:    'bg-[##111111] text-zinc-200 border-[#3f3f46] hover:bg-[#27272a]',
+  idle:    'bg-[#111111] text-zinc-200 border-[#3f3f46] hover:bg-[#27272a]',
 };
 
 // ─── Main Component ────────────────────────────────────────────────
@@ -98,12 +116,14 @@ const Game = () => {
   const [searchParams] = useSearchParams();
   const lobbyCode = searchParams.get('lobby');
   const isMultiplayer = !!lobbyCode;
+  const playerIdentity = useMemo(() => getPlayerIdentity(), []);
   const [socket, setSocket] = useState(null);
   const [players, setPlayers] = useState([]);
   const [multiplayerWord, setMultiplayerWord] = useState(null);
   const [wordClue, setWordClue] = useState('');
   const [showPlayers, setShowPlayers] = useState(false);
   const [waitingForServer, setWaitingForServer] = useState(false);
+  const roundOverlayTimer = useRef(null);
 
   // Round & timer state (multiplayer)
   const [wordLength, setWordLength] = useState(5);
@@ -136,15 +156,16 @@ const Game = () => {
   // ─── Multiplayer socket connection ────────────────────────────
   useEffect(() => {
     if (!isMultiplayer) return;
-    const SERVER_URL = window.location.hostname === 'localhost'
+    const getServerUrl = () => window.location.hostname === 'localhost'
       ? 'http://localhost:3001'
       : 'https://game-server-wl53.onrender.com';
-    const s = io(SERVER_URL, { transports: ['websocket', 'polling'] });
+    const s = io(getServerUrl(), { transports: ['websocket', 'polling'] });
     setSocket(s);
 
     s.on('players-update', (p) => setPlayers(p));
 
     s.on('round-started', ({ wordLength: wl, roundNumber, totalRounds: tr, timeRemaining: trl, clue }) => {
+      if (roundOverlayTimer.current) clearTimeout(roundOverlayTimer.current);
       setWordLength(wl);
       setMultiplayerWord(null);
       setCurrentRound(roundNumber);
@@ -170,10 +191,16 @@ const Game = () => {
     });
 
     s.on('round-over', ({ roundNumber, word, results, leaderboard: lb }) => {
-      setRoundResults({ roundNumber, word, results });
+      const sortedResults = [...results].sort((a, b) => (a.finishOrder || 999) - (b.finishOrder || 999));
+      setRoundResults({ roundNumber, word, results: sortedResults });
       setShowRoundResults(true);
       setLeaderboard(lb);
       setMultiplayerWord(word);
+
+      if (roundOverlayTimer.current) clearTimeout(roundOverlayTimer.current);
+      roundOverlayTimer.current = setTimeout(() => {
+        setShowRoundResults(false);
+      }, 4200);
     });
 
     s.on('game-over', ({ leaderboard: lb }) => {
@@ -185,7 +212,7 @@ const Game = () => {
 
     // Request current round state (handles late join after game already started)
     const savedName = localStorage.getItem('wc_name') || 'Player';
-    s.emit('join-game', { code: lobbyCode, playerName: savedName }, (res) => {
+    s.emit('join-game', { code: lobbyCode, playerName: savedName, playerId: playerIdentity }, (res) => {
       if (res && !res.ok) {
         showToast('Lobby not found');
       }
@@ -340,11 +367,11 @@ const Game = () => {
       socket.emit('submit-guess', { guess: word }, (response) => {
         setWaitingForServer(false);
         if (!response || !response.ok) {
-          showToast('Invalid guess');
+          showToast(response?.error || 'Invalid guess');
           return;
         }
         setPlayers((currentPlayers) => currentPlayers.map((player) => (
-          player.id === socket.id
+          player.id === socket.id || player.playerId === playerIdentity
             ? { ...player, guessCount: response.guessCount, status: response.status }
             : player
         )));
@@ -375,7 +402,7 @@ const Game = () => {
 
     const ev = evaluateGuess(word, target);
     performGuess(word, ev, word === target.replace(/\s/g, '') ? 'won' : guesses.length + 1 >= (wordLen + 1) ? 'lost' : 'playing');
-  }, [currentInput, guesses, evaluations, target, keyStatus, isMultiplayer, socket, showToast, wordLen]);
+  }, [currentInput, guesses, evaluations, target, keyStatus, isMultiplayer, socket, showToast, wordLen, playerIdentity]);
 
   // Keyboard handler
   const handleKey = useCallback((key) => {
@@ -613,7 +640,7 @@ const Game = () => {
 
             <div className="space-y-2 max-h-[65vh] overflow-y-auto pr-1">
               {players.map((p) => {
-                const isMe = socket && p.id === socket.id;
+                const isMe = socket && (p.id === socket.id || p.playerId === playerIdentity);
                 const StatusIcon = p.status === 'won' ? Trophy : p.status === 'lost' ? Skull : Hourglass;
                 return (
                   <div key={p.id} className={`flex items-center gap-3 px-4 py-3 rounded-xl border ${isMe ? 'bg-[#141416] border-emerald-600/30' : 'bg-[#141416] border-[#27272a]'}`}>
@@ -673,9 +700,36 @@ const Game = () => {
               {clue && <p className="text-xs text-zinc-600 mt-2">Clue: {clue}</p>}
             </div>
 
+            <div className="mb-4 rounded-xl border border-emerald-600/20 bg-emerald-600/10 px-3 py-2.5">
+              <div className="flex items-center justify-between gap-3">
+                <span className="font-mono text-[10px] uppercase tracking-[0.2em] text-emerald-300">Winner</span>
+                <span className="text-sm font-semibold text-white">
+                  {roundResults.results.find((r) => r.finishOrder === 1)?.name || '—'}
+                </span>
+              </div>
+              <div className="mt-1 text-xs text-zinc-300">
+                {(() => {
+                  const myResult = roundResults.results.find((r) => r.playerId === playerIdentity || r.id === socket?.id);
+                  if (!myResult) return 'Another round is loading.';
+                  return myResult.score > 0
+                    ? `You earned +${myResult.score} and now sit at ${myResult.totalScore} total points.`
+                    : `You finished with ${myResult.totalScore} total points.`;
+                })()}
+              </div>
+            </div>
+
             <div className="space-y-2 mb-5">
-              {roundResults.results.sort((a, b) => (a.finishOrder || 999) - (b.finishOrder || 999)).map((r) => (
-                <div key={r.id} className="flex items-center gap-3 px-4 py-2.5 rounded-xl bg-[#141416] border border-[#27272a]">
+              {roundResults.results.map((r) => (
+                <div
+                  key={r.id}
+                  className={`flex items-center gap-3 px-4 py-2.5 rounded-xl border ${
+                    r.finishOrder === 1
+                      ? 'bg-emerald-600/10 border-emerald-600/30'
+                      : r.playerId === playerIdentity || r.id === socket?.id
+                        ? 'bg-[#1a1a1d] border-emerald-600/30'
+                        : 'bg-[#141416] border-[#27272a]'
+                  }`}
+                >
                   <span className="text-sm font-mono text-zinc-400 w-6 text-center">
                     {r.finishOrder ? `#${r.finishOrder}` : '—'}
                   </span>
@@ -713,12 +767,22 @@ const Game = () => {
             <div className="space-y-2">
               {leaderboard.map((p) => {
                 const medalColor = p.rank === 1 ? 'text-yellow-400' : p.rank === 2 ? 'text-zinc-300' : 'text-amber-600';
+                const isCurrentUser = p.playerId === playerIdentity || p.id === socket?.id;
                 return (
-                  <div key={p.id} className={`flex items-center gap-3 px-4 py-3 rounded-xl border ${p.rank === 1 ? 'bg-emerald-600/10 border-emerald-600/30' : 'bg-[#141416] border-[#27272a]'}`}>
+                  <div
+                    key={p.id}
+                    className={`flex items-center gap-3 px-4 py-3 rounded-xl border ${
+                      p.rank === 1
+                        ? 'bg-emerald-600/10 border-emerald-600/30'
+                        : isCurrentUser
+                          ? 'bg-[#1a1a1d] border-emerald-600/30'
+                          : 'bg-[#141416] border-[#27272a]'
+                    }`}
+                  >
                     <span className="flex items-center justify-center w-8 text-lg">
                       {p.rank <= 3 ? <Medal size={19} className={medalColor} /> : `#${p.rank}`}
                     </span>
-                    <span className="flex-1 text-sm font-medium text-white">{p.name}</span>
+                    <span className="flex-1 text-sm font-medium text-white">{p.name}{isCurrentUser && <span className="ml-2 text-[10px] uppercase tracking-widest text-emerald-300">You</span>}</span>
                     <span className="text-sm font-mono font-bold text-emerald-400">{p.totalScore} pts</span>
                   </div>
                 );

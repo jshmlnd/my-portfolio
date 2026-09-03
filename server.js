@@ -45,6 +45,21 @@ function evaluateGuess(guess, target) {
   return result;
 }
 
+function createPlayerKey() {
+  return `player_${Date.now()}_${Math.random().toString(16).slice(2)}`;
+}
+
+function canonicalizeWord(word) {
+  return normalizeWord(word).replace(/[-\s]/g, '').toUpperCase();
+}
+
+function isValidMultiplayerGuess(guess, expectedLength) {
+  const cleanGuess = (guess || '').toUpperCase().replace(/\s/g, '');
+  if (!cleanGuess || cleanGuess.length !== expectedLength) return false;
+  const allowedWords = new Set(TARGET_WORDS.map((word) => canonicalizeWord(word)));
+  return allowedWords.has(cleanGuess);
+}
+
 function pickRandomWords(count) {
   const pool = [...TARGET_WORDS];
   const picked = [];
@@ -66,18 +81,34 @@ function calculateRoundScores(lobby) {
     const score = i < 3 ? pts[i] : 2;
     p.roundScore = score;
     p.totalScore = (p.totalScore || 0) + score;
-    results.push({ id: p.id, name: p.name, score, totalScore: p.totalScore, finishOrder: i + 1, status: 'won' });
+    results.push({
+      id: p.id,
+      playerId: p.playerKey,
+      name: p.name,
+      score,
+      totalScore: p.totalScore,
+      finishOrder: i + 1,
+      status: 'won',
+    });
   });
   lobby.players.filter(p => p.status !== 'won').forEach(p => {
     p.roundScore = 0;
-    results.push({ id: p.id, name: p.name, score: 0, totalScore: p.totalScore || 0, finishOrder: null, status: p.status });
+    results.push({
+      id: p.id,
+      playerId: p.playerKey,
+      name: p.name,
+      score: 0,
+      totalScore: p.totalScore || 0,
+      finishOrder: null,
+      status: p.status,
+    });
   });
   return results;
 }
 
 function getLeaderboard(lobby) {
   return lobby.players
-    .map(p => ({ id: p.id, name: p.name, totalScore: p.totalScore || 0 }))
+    .map(p => ({ id: p.id, playerId: p.playerKey, name: p.name, totalScore: p.totalScore || 0 }))
     .sort((a, b) => b.totalScore - a.totalScore)
     .map((p, i) => ({ ...p, rank: i + 1 }));
 }
@@ -164,6 +195,7 @@ function broadcastPlayers(io, lobbyCode) {
   if (!lobby) return;
   const players = lobby.players.map((p) => ({
     id: p.id,
+    playerId: p.playerKey,
     name: p.name,
     isHost: p.id === lobby.hostId,
     guessCount: p.guesses.length,
@@ -180,7 +212,7 @@ function broadcastPlayers(io, lobbyCode) {
 io.on('connection', (socket) => {
   let currentLobby = null;
 
-  socket.on('create-lobby', ({ playerName, settings }, cb) => {
+  socket.on('create-lobby', ({ playerName, settings, playerId }, cb) => {
     let code;
     do { code = generateCode(); } while (lobbies.has(code));
 
@@ -188,6 +220,8 @@ io.on('connection', (socket) => {
       rounds: Math.min(Math.max(parseInt(settings?.rounds) || 3, 1), 10),
       timePerRound: Math.min(Math.max(parseInt(settings?.timePerRound) || 60, 15), 180),
     };
+    const hostPlayerKey = playerId || createPlayerKey();
+    socket.data.playerKey = hostPlayerKey;
 
     const lobby = {
       code,
@@ -200,6 +234,7 @@ io.on('connection', (socket) => {
       wordLength: 5,
       players: [{
         id: socket.id,
+        playerKey: hostPlayerKey,
         name: playerName || 'Player 1',
         guesses: [],
         evaluations: [],
@@ -221,27 +256,37 @@ io.on('connection', (socket) => {
     console.log(`[Lobby ${code}] Created by ${playerName} — rounds: ${lobbySettings.rounds}, time: ${lobbySettings.timePerRound}s`);
   });
 
-  socket.on('join-lobby', ({ code, playerName }, cb) => {
+  socket.on('join-lobby', ({ code, playerName, playerId }, cb) => {
     const lobby = lobbies.get(code);
     if (!lobby) return cb({ ok: false, error: 'Lobby not found' });
     if (lobby.status !== 'waiting') return cb({ ok: false, error: 'Game already in progress' });
     if (lobby.players.length >= 30) return cb({ ok: false, error: 'Lobby is full (max 30)' });
 
-    lobby.players.push({
-      id: socket.id,
-      name: playerName || `Player ${lobby.players.length + 1}`,
-      guesses: [],
-      evaluations: [],
-      status: 'playing',
-      finishedAt: null,
-      totalScore: 0,
-      roundScore: 0,
-    });
+    const resolvedPlayerKey = playerId || createPlayerKey();
+    socket.data.playerKey = resolvedPlayerKey;
+
+    const existing = lobby.players.find((p) => p.playerKey === resolvedPlayerKey);
+    if (existing) {
+      existing.id = socket.id;
+      existing.name = playerName || existing.name || 'Player';
+    } else {
+      lobby.players.push({
+        id: socket.id,
+        playerKey: resolvedPlayerKey,
+        name: playerName || `Player ${lobby.players.length + 1}`,
+        guesses: [],
+        evaluations: [],
+        status: 'playing',
+        finishedAt: null,
+        totalScore: 0,
+        roundScore: 0,
+      });
+    }
     currentLobby = code;
     socket.join(code);
     cb({ ok: true, isHost: false });
     broadcastPlayers(io, code);
-    console.log(`[Lobby ${code}] ${playerName} joined (${lobby.players.length} players)`);
+    console.log(`[Lobby ${code}] ${playerName || 'Player'} joined (${lobby.players.length} players)`);
   });
 
   socket.on('start-game', () => {
@@ -263,22 +308,29 @@ io.on('connection', (socket) => {
   });
 
   // Late-joining: send current round state to a socket that just connected
-  socket.on('join-game', ({ code, playerName }, cb) => {
+  socket.on('join-game', ({ code, playerName, playerId }, cb) => {
     const lobby = lobbies.get(code);
     if (!lobby) return cb?.({ ok: false, error: 'Lobby not found' });
 
     socket.join(code);
     currentLobby = code;
 
-    // Re-add player if they were removed (e.g. host navigated from Lobby to Game)
-    const existing = lobby.players.find(p => p.name === playerName);
-    if (existing) {
-      // Update socket ID so guesses route to the new connection
-      existing.id = socket.id;
+    const resolvedPlayerKey = playerId || socket.data.playerKey || createPlayerKey();
+    socket.data.playerKey = resolvedPlayerKey;
+
+    const existingBySocket = lobby.players.find(p => p.id === socket.id);
+    const existingByKey = lobby.players.find(p => p.playerKey === resolvedPlayerKey);
+
+    if (existingByKey) {
+      existingByKey.id = socket.id;
+      existingByKey.name = playerName || existingByKey.name || 'Player';
+    } else if (existingBySocket) {
+      existingBySocket.playerKey = resolvedPlayerKey;
+      existingBySocket.name = playerName || existingBySocket.name || 'Player';
     } else {
-      // New player joining mid-game
       lobby.players.push({
         id: socket.id,
+        playerKey: resolvedPlayerKey,
         name: playerName || `Player ${lobby.players.length + 1}`,
         guesses: [],
         evaluations: [],
@@ -327,10 +379,14 @@ io.on('connection', (socket) => {
     const lobby = lobbies.get(currentLobby);
     if (!lobby || lobby.status !== 'playing') return;
 
-    const player = lobby.players.find((p) => p.id === socket.id);
+    const player = lobby.players.find((p) => p.id === socket.id || p.playerKey === socket.data.playerKey);
     if (!player || player.status !== 'playing') return;
 
-    const normalizedGuess = guess.toUpperCase().replace(/\s/g, '');
+    const normalizedGuess = (guess || '').toUpperCase().replace(/\s/g, '');
+    if (!isValidMultiplayerGuess(normalizedGuess, lobby.wordLength) || player.guesses.includes(normalizedGuess)) {
+      return cb({ ok: false, error: 'Invalid guess' });
+    }
+
     const evaluation = evaluateGuess(normalizedGuess, lobby.target);
     player.guesses.push(normalizedGuess);
     player.evaluations.push(evaluation);

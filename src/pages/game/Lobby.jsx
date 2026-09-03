@@ -3,7 +3,7 @@ import { useSearchParams } from 'react-router-dom';
 import { ArrowLeft, Users, Play, Copy, Check, Loader2, Link2, Coffee } from 'lucide-react';
 import { io } from 'socket.io-client';
 
-const SERVER_URL = window.location.hostname === 'localhost'
+const getServerUrl = () => window.location.hostname === 'localhost'
   ? 'http://localhost:3001'
   : 'https://game-server-wl53.onrender.com';
 
@@ -26,7 +26,7 @@ export default function Lobby() {
 
   // Connect to server
   useEffect(() => {
-    const s = io(SERVER_URL, { transports: ['websocket', 'polling'] });
+    const s = io(getServerUrl(), { transports: ['websocket', 'polling'] });
     socketRef.current = s;
     setSocket(s);
 
@@ -66,6 +66,17 @@ export default function Lobby() {
     localStorage.setItem('wc_name', name);
   };
 
+  const getPlayerId = () => {
+    const key = 'wc_player_id';
+    const existing = localStorage.getItem(key);
+    if (existing) return existing;
+    const next = globalThis.crypto && typeof globalThis.crypto.randomUUID === 'function'
+      ? globalThis.crypto.randomUUID()
+      : `player_${Date.now()}_${Math.random().toString(16).slice(2)}`;
+    localStorage.setItem(key, next);
+    return next;
+  };
+
   const createLobby = () => {
     if (!playerName.trim()) return setError('Enter your name');
     if (!socketRef.current) return setError('Connecting to server...');
@@ -73,6 +84,7 @@ export default function Lobby() {
     setConnecting(true);
     socketRef.current.emit('create-lobby', {
       playerName: playerName.trim(),
+      playerId: getPlayerId(),
       settings: { rounds, timePerRound },
     }, (res) => {
       setConnecting(false);
@@ -89,7 +101,11 @@ export default function Lobby() {
     if (!joinCode.trim()) return setError('Enter a lobby code');
     setError('');
     setConnecting(true);
-    socketRef.current.emit('join-lobby', { code: joinCode.trim().toUpperCase(), playerName: playerName.trim() }, (res) => {
+    socketRef.current.emit('join-lobby', {
+      code: joinCode.trim().toUpperCase(),
+      playerName: playerName.trim(),
+      playerId: getPlayerId(),
+    }, (res) => {
       setConnecting(false);
       if (res.ok) {
         setLobbyCode(joinCode.trim().toUpperCase());
