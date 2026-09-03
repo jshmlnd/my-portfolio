@@ -11,8 +11,6 @@
  * https://dictionary-api.joshuaklein-malonda.workers.dev/exists/:word
  */
 
-// ─── Target Words (answers) ────────────────────────────────────────
-// These are the words that can be chosen as the daily puzzle solution.
 export const TARGET_WORDS = [
   'ethics',
   'human-acts',

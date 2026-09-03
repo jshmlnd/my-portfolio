@@ -529,7 +529,15 @@ const Game = () => {
                   const evalRow = evaluations[rowIdx];
 
                   return (
-                    <div key={rowIdx} className={`flex gap-[5px] ${isShaking ? 'animate-[shake_0.5s_ease-in-out]' : ''}`}>
+                    <div
+                      key={rowIdx}
+                      className={`grid ${isShaking ? 'animate-[shake_0.5s_ease-in-out]' : ''}`}
+                      style={{
+                        width: '100%',
+                        gridTemplateColumns: `repeat(${wordLetters.length}, minmax(0, 1fr))`,
+                        columnGap: tileGap,
+                      }}
+                    >
                       {wordLetters.map((_, colIdx) => {
                         const letter = guess[colIdx] || '';
                         const isFlippingRow = isFlipping;
@@ -545,8 +553,8 @@ const Game = () => {
                         return (
                           <div
                             key={colIdx}
-                            style={{ width: tileSize, height: tileSize, fontSize: tileFontSize }}
-                            className={`flex shrink-0 items-center justify-center rounded-xl border-2 font-mono font-bold uppercase transition-colors duration-200 ${colorClass} ${
+                            style={{ height: tileSize, fontSize: tileFontSize }}
+                            className={`flex min-w-0 items-center justify-center rounded-xl border-2 font-mono font-bold uppercase transition-colors duration-200 ${colorClass} ${
                               wordBreaks.has(colIdx) ? 'mr-2' : ''
                             } ${
                               isCurrentlyRevealing ? 'animate-[flipTile_0.3s_ease-in-out]' : ''
