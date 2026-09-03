@@ -114,7 +114,7 @@ const NpmPackage = () => {
           <div className="space-y-3">
             <p className="mono-label">03 — Packages</p>
             <h2 className="text-[32px] sm:text-[40px] font-black tracking-[-0.03em] leading-none text-white">
-              Install. <span className="text-zinc-500">Run. </span>
+              Install. <span className="text-zinc-500">Configure. </span>
             Deploy.</h2>
             <p className="max-w-[560px] text-[14px] leading-6 text-zinc-400">
               My first npm package — a CLI + library to generate customizable Express scraping APIs from any URL. Declarative endpoints, Playwright for JS-rendered sites, and built-in cache.
@@ -181,9 +181,9 @@ const NpmPackage = () => {
             </div>
           </div>
 
-          <div className="grid lg:grid-cols-[1.05fr_0.95fr] gap-0">
+          <div className="grid min-w-0 lg:grid-cols-[1.05fr_0.95fr] gap-0">
             {/* Left: info */}
-            <div className="p-6 flex flex-col gap-6 border-b lg:border-b-0 lg:border-r border-[#232326]">
+            <div className="min-w-0 p-6 flex flex-col gap-6 border-b lg:border-b-0 lg:border-r border-[#232326]">
               {/* Install */}
               <div className="space-y-3">
                 <p className="mono-label !text-zinc-400">Install</p>
@@ -259,7 +259,7 @@ const NpmPackage = () => {
             </div>
 
             {/* Right: code preview */}
-            <div className="bg-[#09090b] p-6 flex flex-col gap-4">
+            <div className="min-w-0 bg-[#09090b] p-6 flex flex-col gap-4">
               <div className="flex items-center gap-2">
                 <FileCode2 size={14} className="text-zinc-500" />
                 <span className="font-mono text-[11px] tracking-widest uppercase font-semibold text-zinc-400">api.config.js — declarative endpoints</span>
@@ -355,7 +355,7 @@ const NpmPackage = () => {
         </div>
 
         {/* Quick stats bar — live from registry */}
-        <div className="grid sm:grid-cols-3 gap-3">
+        <div className="grid min-w-0 sm:grid-cols-3 gap-3">
           {loading ? (
             [1, 2, 3].map((i) => <div key={i} className="h-[72px] rounded-2xl bg-[#0f0f10] border border-[#27272a] animate-pulse" />)
           ) : error ? (
@@ -382,7 +382,7 @@ const NpmPackage = () => {
                   href={p.links?.npm || `https://www.npmjs.com/package/${p.name}`}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="group flex items-center gap-3 rounded-2xl border border-[#27272a] bg-[#0f0f10] p-4 hover:border-[#CB3837]/30 hover:bg-[#141416] transition-colors"
+                  className="group min-w-0 flex items-center gap-3 rounded-2xl border border-[#27272a] bg-[#0f0f10] p-4 hover:border-[#CB3837]/30 hover:bg-[#141416] transition-colors"
                 >
                   <div className="w-9 h-9 rounded-xl bg-[#CB3837]/10 border border-[#CB3837]/20 flex items-center justify-center text-[#CB3837] group-hover:scale-105 transition-transform shrink-0">
                     <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor"><path d={siNpm.path} /></svg>
@@ -398,7 +398,7 @@ const NpmPackage = () => {
                 href={displayPkg.links?.repository?.replace('git+', '').replace('.git', '') || 'https://github.com/jshmlnd/zjkm666-package'}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="group flex items-center gap-3 rounded-2xl border border-[#27272a] bg-[#0f0f10] p-4 hover:border-white/20 hover:bg-[#141416] transition-colors"
+                className="group min-w-0 flex items-center gap-3 rounded-2xl border border-[#27272a] bg-[#0f0f10] p-4 hover:border-white/20 hover:bg-[#141416] transition-colors"
               >
                 <div className="w-9 h-9 rounded-xl bg-white text-black flex items-center justify-center group-hover:scale-105 transition-transform shrink-0">
                   <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor"><path d={siGithub.path} /></svg>

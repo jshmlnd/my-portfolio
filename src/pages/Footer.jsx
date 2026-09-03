@@ -1,5 +1,5 @@
 import { siGithub, siFacebook } from 'simple-icons';
-import { ArrowUpRight } from 'lucide-react';
+import { navItems } from './navItems';
 
 // simple-icons removed the LinkedIn icon (v11+), so its path is inlined here
 const siLinkedin = {
@@ -68,66 +68,20 @@ const Footer = () => {
             <div className="space-y-3">
               <p className="font-mono text-[11px] tracking-widest uppercase font-semibold text-zinc-400">Navigate</p>
               <ul className="space-y-2 text-sm">
-                <li>
-                  <a
-                    href="#hero"
-                    onClick={(e) => {
-                      e.preventDefault();
-                      scrollTo('#hero');
-                    }}
-                    className="text-zinc-500 hover:text-white transition-colors"
-                  >
-                    About
-                  </a>
-                </li>
-                <li>
-                  <a
-                    href="#projects"
-                    onClick={(e) => {
-                      e.preventDefault();
-                      scrollTo('#projects');
-                    }}
-                    className="text-zinc-500 hover:text-white transition-colors"
-                  >
-                    Work
-                  </a>
-                </li>
-                <li>
-                  <a
-                    href="#packages"
-                    onClick={(e) => {
-                      e.preventDefault();
-                      scrollTo('#packages');
-                    }}
-                    className="text-zinc-500 hover:text-white transition-colors"
-                  >
-                    Package
-                  </a>
-                </li>
-                <li>
-                  <a
-                    href="#certs"
-                    onClick={(e) => {
-                      e.preventDefault();
-                      scrollTo('#certs');
-                    }}
-                    className="text-zinc-500 hover:text-white transition-colors"
-                  >
-                    Certifications
-                  </a>
-                </li>
-                <li>
-                  <a
-                    href="#contact"
-                    onClick={(e) => {
-                      e.preventDefault();
-                      scrollTo('#contact');
-                    }}
-                    className="text-zinc-500 hover:text-white transition-colors"
-                  >
-                    Contact
-                  </a>
-                </li>
+                {navItems.map(({ label, href }) => (
+                  <li key={href}>
+                    <a
+                      href={href}
+                      onClick={(e) => {
+                        e.preventDefault();
+                        scrollTo(href);
+                      }}
+                      className="text-zinc-500 hover:text-white transition-colors"
+                    >
+                      {label}
+                    </a>
+                  </li>
+                ))}
               </ul>
             </div>
 
@@ -174,13 +128,11 @@ const Footer = () => {
         <div className="flex flex-col sm:flex-row items-center justify-between gap-3 py-5 border-t border-[#1f1f23] font-mono text-xs tracking-wide text-zinc-600">
           <p>© {new Date().getFullYear()} jshmlnd — All rights reserved.</p>
           <p className="flex items-center gap-2">
-            <span>
               <a
                 href="/lobby"
-                className="text-zinc-500 hover:text-white transition-colors inline-flex items-center gap-1">
-                Create Lobby
+                className="text-zinc-600 hover:text-white transition-colors inline-flex items-center">
+                Sandbox
               </a>
-            </span>
             <span className="hidden sm:inline w-1 h-1 rounded-full bg-zinc-700" />
             <span>Built with React</span>
             <span className="hidden sm:inline w-1 h-1 rounded-full bg-zinc-700" />

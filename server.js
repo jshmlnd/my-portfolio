@@ -16,7 +16,7 @@ const io = new Server(server, {
 });
 
 // ─── Word Bank (same as client) ────────────────────────────────────
-import { TARGET_WORDS } from './src/pages/game/wordbank.js';
+import { TARGET_WORDS, WORD_CLUES, normalizeWord } from './src/pages/game/wordbank.js';
 
 // ─── In-memory lobby storage ───────────────────────────────────────
 const lobbies = new Map();
@@ -29,6 +29,8 @@ function generateCode() {
 }
 
 function evaluateGuess(guess, target) {
+  guess = guess.replace(/\s/g, '');
+  target = target.replace(/\s/g, '');
   const len = target.length;
   const result = Array(len).fill('absent');
   const targetCounts = {};
@@ -48,7 +50,7 @@ function pickRandomWords(count) {
   const picked = [];
   for (let i = 0; i < Math.min(count, pool.length); i++) {
     const idx = Math.floor(Math.random() * pool.length);
-    picked.push(pool[idx].toUpperCase());
+    picked.push(normalizeWord(pool[idx]));
     pool.splice(idx, 1);
   }
   return picked;
@@ -83,7 +85,8 @@ function getLeaderboard(lobby) {
 function startRound(io, lobby) {
   lobby.currentRound = (lobby.currentRound || 0) + 1;
   lobby.target = lobby.words[lobby.currentRound - 1];
-  lobby.wordLength = lobby.target.length;
+  lobby.wordLength = lobby.target.replace(/\s/g, '').length;
+  lobby.clue = lobby.clues[lobby.currentRound - 1];
   lobby.timeRemaining = lobby.settings.timePerRound;
   lobby.finishCount = 0;
 
@@ -103,6 +106,7 @@ function startRound(io, lobby) {
     roundNumber: lobby.currentRound,
     totalRounds: lobby.settings.rounds,
     timeRemaining: lobby.timeRemaining,
+    clue: lobby.clue,
   });
 
   lobby.timerInterval = setInterval(() => {
@@ -161,6 +165,7 @@ function broadcastPlayers(io, lobbyCode) {
   const players = lobby.players.map((p) => ({
     id: p.id,
     name: p.name,
+    isHost: p.id === lobby.hostId,
     guessCount: p.guesses.length,
     status: p.status,
     finishedAt: p.finishedAt || null,
@@ -220,7 +225,7 @@ io.on('connection', (socket) => {
     const lobby = lobbies.get(code);
     if (!lobby) return cb({ ok: false, error: 'Lobby not found' });
     if (lobby.status !== 'waiting') return cb({ ok: false, error: 'Game already in progress' });
-    if (lobby.players.length >= 8) return cb({ ok: false, error: 'Lobby is full (max 8)' });
+    if (lobby.players.length >= 30) return cb({ ok: false, error: 'Lobby is full (max 30)' });
 
     lobby.players.push({
       id: socket.id,
@@ -229,6 +234,8 @@ io.on('connection', (socket) => {
       evaluations: [],
       status: 'playing',
       finishedAt: null,
+      totalScore: 0,
+      roundScore: 0,
     });
     currentLobby = code;
     socket.join(code);
@@ -244,6 +251,7 @@ io.on('connection', (socket) => {
     if (lobby.status !== 'waiting') return;
 
     lobby.words = pickRandomWords(lobby.settings.rounds);
+    lobby.clues = lobby.words.map((word) => WORD_CLUES[TARGET_WORDS.find((target) => normalizeWord(target) === word)] || 'Think about the meaning of this word.');
     lobby.players.forEach(p => { p.totalScore = 0; });
 
     // Tell Lobby clients to redirect to the game page
@@ -293,6 +301,7 @@ io.on('connection', (socket) => {
         roundNumber: lobby.currentRound,
         totalRounds: lobby.settings.rounds,
         timeRemaining: lobby.timeRemaining,
+        clue: lobby.clue,
       });
     } else if (lobby.status === 'round-over') {
       const results = calculateRoundScores(lobby);
@@ -321,11 +330,12 @@ io.on('connection', (socket) => {
     const player = lobby.players.find((p) => p.id === socket.id);
     if (!player || player.status !== 'playing') return;
 
-    const evaluation = evaluateGuess(guess.toUpperCase(), lobby.target);
-    player.guesses.push(guess.toUpperCase());
+    const normalizedGuess = guess.toUpperCase().replace(/\s/g, '');
+    const evaluation = evaluateGuess(normalizedGuess, lobby.target);
+    player.guesses.push(normalizedGuess);
     player.evaluations.push(evaluation);
 
-    const won = guess.toUpperCase() === lobby.target;
+    const won = normalizedGuess === lobby.target.replace(/\s/g, '');
     if (won) {
       player.status = 'won';
       player.finishedAt = Date.now();
@@ -335,7 +345,7 @@ io.on('connection', (socket) => {
       player.finishedAt = Date.now();
     }
 
-    cb({ ok: true, evaluation, status: player.status });
+    cb({ ok: true, evaluation, status: player.status, guessCount: player.guesses.length });
     broadcastPlayers(io, currentLobby);
 
     const allDone = lobby.players.every((p) => p.status !== 'playing');

@@ -1,14 +1,7 @@
 import { ArrowUpRight } from 'lucide-react';
 import { useState, useEffect, useRef, useLayoutEffect } from 'react';
 import { siGithub } from 'simple-icons';
-
-const navItems = [
-  { label: 'About', href: '#hero', id: 'hero' },
-  { label: 'Repos', href: '#projects', id: 'projects' },
-  { label: 'Package', href: '#packages', id: 'packages' },
-  { label: 'Certs', href: '#certs', id: 'certs' },
-  { label: 'Contact', href: '#contact', id: 'contact' },
-];
+import { navItems } from './navItems';
 
 const Navbar = () => {
   const [active, setActive] = useState('hero');

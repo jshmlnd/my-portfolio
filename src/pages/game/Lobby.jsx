@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { ArrowLeft, Users, Play, Copy, Check, Loader2, Link2 } from 'lucide-react';
+import { ArrowLeft, Users, Play, Copy, Check, Loader2, Link2, Coffee } from 'lucide-react';
 import { io } from 'socket.io-client';
 
 const SERVER_URL = window.location.hostname === 'localhost'
@@ -44,6 +44,7 @@ export default function Lobby() {
 
     s.on('players-update', (p) => {
       setPlayers(p);
+      setIsHost(p.some((player) => player.id === s.id && player.isHost));
     });
 
     s.on('game-started', () => {
@@ -152,22 +153,25 @@ export default function Lobby() {
           <header className="flex items-center h-14 shrink-0">
             <a href="/" className="inline-flex items-center gap-2 text-zinc-500 hover:text-white transition-colors">
               <ArrowLeft size={18} />
-              <span className="font-mono text-xs tracking-wide">Back</span>
+              <span className="font-mono text-xs tracking-wide">Leave Sandbox</span>
             </a>
           </header>
 
           <div className="flex-1 flex flex-col items-center justify-center pb-20">
             <div className="w-full space-y-6">
               <div className="text-center space-y-2">
-                <h1 className="font-mono font-bold text-3xl tracking-tight text-white">
-                  Create<span className="text-emerald-500"> Lobby</span>
+                <h1 className="font-bold text-3xl tracking-tight text-white">
+                  Create a<span className="text-emerald-500"> Lobby</span>
                 </h1>
-                <p className="text-sm text-zinc-500">Create a lobby and challenge your friends</p>
+                <p className="text-sm text-zinc-500">Create a lobby and challenge your friends.</p>
+                <a href="https://www.buymeacoffee.com/jshmlnd" target="_blank" rel="noopener noreferrer" className="animate-pulse text-md text-emerald-500 hover:text-emerald-300 transition-colors">
+                Buy me a coffee! <Coffee size={16} className="inline-block ml-1" />
+              </a>
               </div>
 
               {/* Name input */}
               <div className="space-y-2">
-                <label className="font-mono text-[11px] tracking-widest uppercase text-zinc-500">Your Name</label>
+                <label className="font-mono text-[11px] tracking-widest uppercase text-zinc-500 pl-3">Display Name</label>
                 <input
                   type="text"
                   value={playerName}
@@ -201,9 +205,11 @@ export default function Lobby() {
                     className="px-3 py-1.5 rounded-lg bg-[#232326] border border-[#3f3f46] text-sm text-white font-mono focus:outline-none focus:border-[#52525b]"
                   >
                     <option value={30}>30s</option>
-                    <option value={60}>60s</option>
-                    <option value={90}>90s</option>
-                    <option value={120}>120s</option>
+                    <option value={60}>1m</option>
+                    <option value={90}>1m 30s</option>
+                    <option value={120}>2m</option>
+                    <option value={150}>2m 30s</option>
+                    <option value={180}>3m</option>
                   </select>
                 </div>
               </div>
@@ -277,7 +283,7 @@ export default function Lobby() {
               )}
 
               <div className="space-y-2">
-                <label className="font-mono text-[11px] tracking-widest uppercase text-zinc-500">Lobby Code</label>
+                <label className="font-mono text-[11px] tracking-widest uppercase text-zinc-500 pl-3">Lobby Code</label>
                 <input
                   type="text"
                   value={joinCode}
@@ -312,7 +318,7 @@ export default function Lobby() {
       <div className="absolute inset-0 bg-grid opacity-[0.2] bg-grid-fade pointer-events-none" />
       <div className="absolute inset-0 bg-[radial-gradient(ellipse_800px_500px_at_50%_-10%,rgba(250,250,250,0.04),transparent_60%)] pointer-events-none" />
 
-      <div className="relative z-10 max-w-[440px] mx-auto px-4 flex flex-col min-h-screen">
+      <div className="relative z-10 max-w-[720px] mx-auto px-4 flex flex-col min-h-screen">
         <header className="flex items-center h-14 shrink-0">
           <button onClick={() => { window.location.href = '/lobby'; }} className="inline-flex items-center gap-2 text-zinc-500 hover:text-white transition-colors">
             <ArrowLeft size={18} />
@@ -360,23 +366,23 @@ export default function Lobby() {
             {/* Players list */}
             <div className="space-y-2">
               <div className="flex items-center justify-between">
-                <span className="font-mono text-[11px] tracking-widest uppercase text-zinc-500">Players</span>
-                <span className="font-mono text-xs text-zinc-600">{players.length}/8</span>
+                <span className="font-mono text-[11px] tracking-widest uppercase text-zinc-500 pl-3">Players</span>
+                <span className="font-mono text-xs text-zinc-600 pr-4">{players.length}/30</span>
               </div>
 
-              <div className="space-y-1.5">
-                {players.map((p, i) => (
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5 max-h-[min(58vh,520px)] overflow-y-auto pr-1">
+                {players.map((p) => (
                   <div key={p.id} className="flex items-center gap-3 px-4 py-3 rounded-xl bg-[#141416] border border-[#27272a]">
                     <div className="w-8 h-8 rounded-full bg-[#232326] flex items-center justify-center font-mono text-xs font-bold text-zinc-400">
                       {p.name.charAt(0).toUpperCase()}
                     </div>
-                    <div className="flex-1">
-                      <span className="text-sm font-medium text-white">{p.name}</span>
+                    <div className="flex-1 min-w-0">
+                      <span className="text-sm font-medium text-white truncate">{p.name}</span>
                       {p.id === socket?.id && (
                         <span className="ml-2 text-[10px] font-mono text-zinc-600">(you)</span>
                       )}
                     </div>
-                    {i === 0 && (
+                    {p.isHost && (
                       <span className="text-[10px] font-mono text-emerald-500 tracking-wider uppercase">host</span>
                     )}
                   </div>

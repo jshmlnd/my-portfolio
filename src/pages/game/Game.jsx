@@ -1,8 +1,8 @@
 import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { ArrowLeft, BarChart3, Share2, RotateCcw, Info, X, Users } from 'lucide-react';
+import { ArrowLeft, X, Users, Coffee, Gamepad2, PartyPopper, Timer, Trophy, Skull, Hourglass, Medal } from 'lucide-react';
 import { io } from 'socket.io-client';
-import { TARGET_WORDS, EPOCH_START, GAME_CONFIG } from './wordbank';
+import { TARGET_WORDS, WORD_CLUES, EPOCH_START, GAME_CONFIG, normalizeWord } from './wordbank';
 
 // ─── Helpers ───────────────────────────────────────────────────────
 function getDailyWord() {
@@ -10,7 +10,7 @@ function getDailyWord() {
   const utcMs = Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate());
   const daysSinceEpoch = Math.floor((utcMs - EPOCH_START.getTime()) / (1000 * 60 * 60 * 24));
   const idx = Math.abs(daysSinceEpoch) % TARGET_WORDS.length;
-  return TARGET_WORDS[idx].toUpperCase();
+  return normalizeWord(TARGET_WORDS[idx]);
 }
 
 function getPuzzleNumber() {
@@ -20,6 +20,8 @@ function getPuzzleNumber() {
 }
 
 function evaluateGuess(guess, target) {
+  guess = guess.replace(/\s/g, '');
+  target = target.replace(/\s/g, '');
   const len = target.length;
   const result = Array(len).fill('absent');
   const targetCounts = {};
@@ -39,17 +41,6 @@ function evaluateGuess(guess, target) {
     }
   }
   return result;
-}
-
-function loadStats() {
-  try {
-    const raw = localStorage.getItem('wordcraft_stats');
-    return raw ? JSON.parse(raw) : { played: 0, won: 0, streak: 0, maxStreak: 0, distribution: {} };
-  } catch { return { played: 0, won: 0, streak: 0, maxStreak: 0, distribution: {} }; }
-}
-
-function saveStats(stats) {
-  try { localStorage.setItem('wordcraft_stats', JSON.stringify(stats)); } catch {}
 }
 
 function loadGameState() {
@@ -97,9 +88,7 @@ const Game = () => {
   const [revealedTiles, setRevealedTiles] = useState(new Set());
   const [shakeRow, setShakeRow] = useState(-1);
   const [toast, setToast] = useState('');
-  const [showStats, setShowStats] = useState(false);
-  const [showHelp, setShowHelp] = useState(false);
-  const [stats, setStats] = useState(loadStats);
+  const [showLeaveToast, setShowLeaveToast] = useState(false);
   const [keyStatus, setKeyStatus] = useState({});
   const inputRef = useRef(null);
   const toastTimer = useRef(null);
@@ -111,6 +100,7 @@ const Game = () => {
   const [socket, setSocket] = useState(null);
   const [players, setPlayers] = useState([]);
   const [multiplayerWord, setMultiplayerWord] = useState(null);
+  const [wordClue, setWordClue] = useState('');
   const [showPlayers, setShowPlayers] = useState(false);
   const [waitingForServer, setWaitingForServer] = useState(false);
 
@@ -124,9 +114,22 @@ const Game = () => {
   const [leaderboard, setLeaderboard] = useState([]);
   const [showLeaderboard, setShowLeaderboard] = useState(false);
   const [isGameOver, setIsGameOver] = useState(false);
+  const [redirectCountdown, setRedirectCountdown] = useState(0);
 
   const target = useMemo(() => isMultiplayer ? (multiplayerWord || 'A'.repeat(wordLength)) : getDailyWord(), [isMultiplayer, multiplayerWord, wordLength]);
-  const wordLen = isMultiplayer ? wordLength : target.length;
+  const wordLen = target.replace(/\s/g, '').length;
+  const wordBreaks = useMemo(() => {
+    const breaks = new Set();
+    let letterIndex = 0;
+    target.split(' ').slice(0, -1).forEach((part) => {
+      letterIndex += part.length;
+      breaks.add(letterIndex - 1);
+    });
+    return breaks;
+  }, [target]);
+  const clue = isMultiplayer
+    ? wordClue
+    : WORD_CLUES[TARGET_WORDS.find((word) => normalizeWord(word) === target)] || '';
 
   // ─── Multiplayer socket connection ────────────────────────────
   useEffect(() => {
@@ -139,11 +142,12 @@ const Game = () => {
 
     s.on('players-update', (p) => setPlayers(p));
 
-    s.on('round-started', ({ wordLength: wl, roundNumber, totalRounds: tr, timeRemaining: trl }) => {
+    s.on('round-started', ({ wordLength: wl, roundNumber, totalRounds: tr, timeRemaining: trl, clue }) => {
       setWordLength(wl);
       setCurrentRound(roundNumber);
       setTotalRounds(tr);
       setTimeRemaining(trl);
+      setWordClue(clue || '');
       setGuesses([]);
       setCurrentInput('');
       setGameStatus('playing');
@@ -154,7 +158,8 @@ const Game = () => {
       setRoundResults(null);
       setShowRoundResults(false);
       setIsGameOver(false);
-      showToast(`🎮 Round ${roundNumber}/${tr} — ${wl} letters`);
+      setRedirectCountdown(0);
+      showToast(`Round ${roundNumber}/${tr} — ${wl} letters`, Gamepad2);
     });
 
     s.on('timer-update', ({ timeRemaining: trl }) => {
@@ -185,6 +190,27 @@ const Game = () => {
 
     return () => { s.disconnect(); };
   }, [isMultiplayer, lobbyCode]);
+
+  useEffect(() => {
+    if (!isGameOver) {
+      setRedirectCountdown(0);
+      return;
+    }
+
+    setRedirectCountdown(8);
+    const redirectTimer = setInterval(() => {
+      setRedirectCountdown((seconds) => {
+        if (seconds <= 1) {
+          clearInterval(redirectTimer);
+          window.location.href = '/lobby';
+          return 0;
+        }
+        return seconds - 1;
+      });
+    }, 1000);
+
+    return () => clearInterval(redirectTimer);
+  }, [isGameOver]);
 
   // Restore game state on mount (single player only)
   useEffect(() => {
@@ -230,10 +256,10 @@ const Game = () => {
     return () => document.removeEventListener('click', focus);
   }, []);
 
-  const showToast = useCallback((msg) => {
-    setToast(msg);
+  const showToast = useCallback((message, Icon = null) => {
+    setToast({ message, Icon });
     if (toastTimer.current) clearTimeout(toastTimer.current);
-    toastTimer.current = setTimeout(() => setToast(''), 2200);
+    toastTimer.current = setTimeout(() => setToast(null), 2200);
   }, []);
 
   // Shared guess animation & state logic (used by both single & multiplayer)
@@ -273,27 +299,14 @@ const Game = () => {
           setFlippingRow(-1);
           setRevealedTiles(new Set());
 
-          const won = serverStatus === 'won' || (!isMultiplayer && word === target);
+          const won = serverStatus === 'won' || (!isMultiplayer && word === target.replace(/\s/g, ''));
           const lost = serverStatus === 'lost' || (!isMultiplayer && newGuesses.length >= (wordLen + 1) && !won);
 
           if (won) {
             setGameStatus('won');
-            const newStats = { ...loadStats() };
-            newStats.played++;
-            newStats.won++;
-            newStats.streak++;
-            newStats.maxStreak = Math.max(newStats.maxStreak, newStats.streak);
-            newStats.distribution[newGuesses.length] = (newStats.distribution[newGuesses.length] || 0) + 1;
-            saveStats(newStats);
-            setStats(newStats);
-            showToast('🎉 Brilliant!');
+            showToast('Brilliant!', PartyPopper);
           } else if (lost) {
             setGameStatus('lost');
-            const newStats = { ...loadStats() };
-            newStats.played++;
-            newStats.streak = 0;
-            saveStats(newStats);
-            setStats(newStats);
             if (!isMultiplayer) {
               setTimeout(() => showToast(`The word was ${target}`), 1200);
             }
@@ -304,7 +317,7 @@ const Game = () => {
   }, [guesses, evaluations, target, keyStatus, isMultiplayer, showToast, wordLen]);
 
   const submitGuess = useCallback(async () => {
-    const word = currentInput.toUpperCase();
+    const word = currentInput.toUpperCase().replace(/\s/g, '');
     if (word.length !== wordLen) {
       showToast('Not enough letters');
       setShakeRow(guesses.length);
@@ -321,18 +334,23 @@ const Game = () => {
           showToast('Invalid guess');
           return;
         }
+        setPlayers((currentPlayers) => currentPlayers.map((player) => (
+          player.id === socket.id
+            ? { ...player, guessCount: response.guessCount, status: response.status }
+            : player
+        )));
         performGuess(word, response.evaluation, response.status);
       });
       return;
     }
 
     // Single-player: validate word via API (fail open if unreachable)
-    const isTargetWord = TARGET_WORDS.includes(word.toLowerCase());
+    const isTargetWord = TARGET_WORDS.some((targetWord) => normalizeWord(targetWord) === word);
     if (!isTargetWord) {
       try {
         const controller = new AbortController();
         const timeout = setTimeout(() => controller.abort(), 2000);
-        const res = await fetch(`https://dictionary-api.joshuaklein-malonda.workers.dev/exists/${word.toLowerCase()}`, { signal: controller.signal });
+        const res = await fetch(`https://dictionary-api.joshuaklein-malonda.workers.dev/exists/${encodeURIComponent(word.toLowerCase())}`, { signal: controller.signal });
         clearTimeout(timeout);
         const data = await res.json();
         if (!data.exists) {
@@ -347,7 +365,7 @@ const Game = () => {
     }
 
     const ev = evaluateGuess(word, target);
-    performGuess(word, ev, word === target ? 'won' : guesses.length + 1 >= (wordLen + 1) ? 'lost' : 'playing');
+    performGuess(word, ev, word === target.replace(/\s/g, '') ? 'won' : guesses.length + 1 >= (wordLen + 1) ? 'lost' : 'playing');
   }, [currentInput, guesses, evaluations, target, keyStatus, isMultiplayer, socket, showToast, wordLen]);
 
   // Keyboard handler
@@ -370,33 +388,11 @@ const Game = () => {
   useEffect(() => {
     const handler = (e) => {
       if (e.ctrlKey || e.metaKey || e.altKey) return;
-      handleKey(e.key.toUpperCase());
+      handleKey(e.code === 'Space' ? 'SPACE' : e.key.toUpperCase());
     };
     window.addEventListener('keydown', handler);
     return () => window.removeEventListener('keydown', handler);
   }, [handleKey]);
-
-  // Share results
-  const shareResults = useCallback(() => {
-    const lines = [];
-    const won = gameStatus === 'won';
-    lines.push(`WordCraft #${puzzleNumber} ${guesses.length}/${GAME_CONFIG.maxGuesses}${won ? '' : ' ✗'}`);
-    evaluations.forEach((row) => {
-      lines.push(row.map((r) => (r === 'correct' ? '🟩' : r === 'present' ? '🟨' : '⬛')).join(''));
-    });
-    const text = lines.join('\n');
-    navigator.clipboard.writeText(text).then(() => showToast('Copied to clipboard!')).catch(() => {});
-  }, [gameStatus, puzzleNumber, evaluations, guesses.length, showToast]);
-
-  // New game (tomorrow)
-  const resetGame = useCallback(() => {
-    localStorage.removeItem('wordcraft_game');
-    setGuesses([]);
-    setCurrentInput('');
-    setGameStatus('playing');
-    setEvaluations([]);
-    setKeyStatus({});
-  }, []);
 
   // ─── Render ──────────────────────────────────────────────────────
   return (
@@ -409,8 +405,33 @@ const Game = () => {
       {/* Toast */}
       {toast && (
         <div className="fixed top-20 left-1/2 -translate-x-1/2 z-[60] animate-fade-in">
-          <div className="px-5 py-2.5 rounded-xl bg-[#18181b] border border-[#27272a] text-sm font-medium text-zinc-200 shadow-xl">
-            {toast}
+          <div className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-[#18181b] border border-[#27272a] text-sm font-medium text-zinc-200 shadow-xl">
+            {toast.Icon && <toast.Icon size={15} className="text-emerald-400" />}
+            {toast.message}
+          </div>
+        </div>
+      )}
+
+      {showLeaveToast && (
+        <div className="fixed top-20 left-1/2 -translate-x-1/2 z-[60] w-[min( calc(100vw-2rem),20rem)] animate-fade-in">
+          <div className="flex items-center justify-between gap-4 rounded-xl border border-[#27272a] bg-[#18181b] px-4 py-3 text-sm text-zinc-200 shadow-xl">
+            <span>Leave Game?</span>
+            <div className="flex items-center gap-2 shrink-0">
+              <button
+                type="button"
+                onClick={() => { window.location.href = '/lobby'; }}
+                className="rounded-md bg-white px-2.5 py-1 text-xs font-semibold text-black hover:bg-zinc-200 transition-colors"
+              >
+                Leave
+              </button>
+              <button
+                type="button"
+                onClick={() => setShowLeaveToast(false)}
+                className="rounded-md border border-[#3f3f46] px-2.5 py-1 text-xs font-medium text-zinc-300 hover:text-white hover:border-zinc-500 transition-colors"
+              >
+                Cancel
+              </button>
+            </div>
           </div>
         </div>
       )}
@@ -420,15 +441,19 @@ const Game = () => {
         <header className="flex items-center justify-between h-14 shrink-0">
           <a
             href="/lobby"
+            onClick={(event) => {
+              event.preventDefault();
+              setShowLeaveToast(true);
+            }}
             className="inline-flex items-center gap-2 text-zinc-500 hover:text-white transition-colors"
           >
             <ArrowLeft size={18} />
-            <span className="font-mono text-xs tracking-wide hidden sm:inline">Back</span>
+            <span className="font-mono text-xs tracking-wide hidden sm:inline">Leave</span>
           </a>
 
-          <h1 className="font-mono font-bold text-lg tracking-tight text-white">
-            Weirdly<span className="text-emerald-500">Fun</span>
-          </h1>
+          <a href="https://buymeacoffee.com/jshmlnd" className="font-mono font-light text-sm tracking-wide text-emerald-500">
+            Buy me a coffee!<Coffee size={14} className="inline-block ml-1" />
+          </a>
 
           <div className="flex items-center gap-2">
             {isMultiplayer && (
@@ -443,20 +468,6 @@ const Game = () => {
                 </span>
               </button>
             )}
-            <button
-              onClick={() => setShowStats(true)}
-              className="p-2 rounded-lg text-zinc-500 hover:text-white hover:bg-[#18181b] transition-colors"
-              aria-label="Statistics"
-            >
-              <BarChart3 size={18} />
-            </button>
-            <button
-              onClick={() => setShowHelp(true)}
-              className="p-2 rounded-lg text-zinc-500 hover:text-white hover:bg-[#18181b] transition-colors"
-              aria-label="How to play"
-            >
-              <Info size={18} />
-            </button>
           </div>
         </header>
 
@@ -479,10 +490,15 @@ const Game = () => {
             </span>
             {timeRemaining !== null && (
               <span className={`text-[11px] font-mono font-bold ${timeRemaining <= 10 ? 'text-red-400' : timeRemaining <= 30 ? 'text-yellow-400' : 'text-emerald-400'}`}>
-                ⏱ {timeRemaining}s
+                <Timer size={13} /> {timeRemaining}s
               </span>
             )}
           </div>
+        )}
+        {clue && (
+          <p className="text-center text-xs text-zinc-500 pb-2">
+            Clue: <span className="text-zinc-300">{clue}</span>
+          </p>
         )}
 
         {/* Divider */}
@@ -493,7 +509,7 @@ const Game = () => {
           {(() => {
             const maxGuesses = wordLen + 1;
             const tileGap = 5;
-            const tileSize = Math.min(68, Math.floor((460 - (wordLen - 1) * tileGap) / wordLen));
+            const tileSize = Math.min(68, Math.floor((460 - (wordLen - 1) * tileGap - wordBreaks.size * 8) / wordLen));
             return (
               <div className="flex flex-col gap-[5px] mb-6">
                 {Array.from({ length: maxGuesses }).map((_, rowIdx) => {
@@ -521,6 +537,8 @@ const Game = () => {
                             key={colIdx}
                             style={{ width: tileSize, height: tileSize }}
                             className={`flex items-center justify-center rounded-xl border-2 font-mono font-bold text-2xl uppercase transition-colors duration-200 ${colorClass} ${
+                              wordBreaks.has(colIdx) ? 'mr-2' : ''
+                            } ${
                               isCurrentlyRevealing ? 'animate-[flipTile_0.3s_ease-in-out]' : ''
                             }`}
                           >
@@ -541,14 +559,14 @@ const Game = () => {
           {KB_ROWS.map((row, ri) => (
             <div key={ri} className="flex justify-center gap-[5px] mb-[5px]">
               {row.map((key) => {
-                const wide = key === 'ENTER' || key === '⌫';
+                const wide = key === 'ENTER' || key === '⌫' || key === 'SPACE';
                 const status = keyStatus[key] || 'idle';
                 return (
                   <button
                     key={key}
                     onClick={() => handleKey(key)}
                     className={`h-[52px] rounded-lg border font-mono text-xs font-semibold uppercase tracking-wider transition-colors select-none active:scale-95 ${
-                      wide ? 'px-4 min-w-[56px]' : 'w-[38px]'
+                      wide ? 'flex-[1.6] min-w-0' : 'flex-1 min-w-0'
                     } ${KEY_COLORS[status]}`}
                   >
                     {key === '⌫' ? '⌫' : key}
@@ -558,143 +576,7 @@ const Game = () => {
             </div>
           ))}
         </div>
-
-        {/* Actions — shown when game ends */}
-        {gameStatus !== 'playing' && gameStatus === 'won' && (
-          <div className="fixed bottom-0 inset-x-0 pb-6 pt-3 bg-gradient-to-t from-[#09090b] via-[#09090b] to-transparent pointer-events-none">
-            <div className="flex justify-center gap-3 pointer-events-auto animate-fade-in-up">
-              <button
-                onClick={shareResults}
-                className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full bg-emerald-600 text-white text-sm font-semibold hover:bg-emerald-500 transition-colors"
-              >
-                <Share2 size={14} />
-                Share
-              </button>
-            </div>
-          </div>
-        )}
       </div>
-
-      {/* ─── Help Modal ────────────────────────────────────────────── */}
-      {showHelp && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4" onClick={() => setShowHelp(false)}>
-          <div
-            className="w-full max-w-[440px] rounded-2xl border border-[#27272a] bg-[#0f0f10] p-6 shadow-2xl animate-scale-in"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div className="flex items-center justify-between mb-5">
-              <h2 className="font-mono font-bold text-lg text-white">How to Play</h2>
-              <button onClick={() => setShowHelp(false)} className="p-1 text-zinc-500 hover:text-white transition-colors">
-                <X size={18} />
-              </button>
-            </div>
-
-            <div className="space-y-4 text-sm text-zinc-400 leading-relaxed">
-              <p>Guess the hidden {wordLen}-letter word in <strong className="text-white">{wordLen + 1} tries</strong>.</p>
-              <p>Each guess must be a valid {wordLen}-letter word. Press <kbd className="px-1.5 py-0.5 rounded border border-[#27272a] bg-[#18181b] font-mono text-[11px] text-zinc-300">ENTER</kbd> to submit.</p>
-
-              <div className="space-y-2">
-                <p>After each guess, tiles will change color to show how close you are:</p>
-                <div className="flex items-center gap-3">
-                  <span className="w-8 h-8 rounded-lg bg-emerald-600 flex items-center justify-center font-mono font-bold text-sm text-white">W</span>
-                  <span><strong className="text-white">Green</strong> — correct letter, correct spot</span>
-                </div>
-                <div className="flex items-center gap-3">
-                  <span className="w-8 h-8 rounded-lg bg-yellow-500 flex items-center justify-center font-mono font-bold text-sm text-white">O</span>
-                  <span><strong className="text-white">Yellow</strong> — correct letter, wrong spot</span>
-                </div>
-                <div className="flex items-center gap-3">
-                  <span className="w-8 h-8 rounded-lg bg-[#3f3f46] flex items-center justify-center font-mono font-bold text-sm text-white">R</span>
-                  <span><strong className="text-white">Gray</strong> — letter not in word</span>
-                </div>
-              </div>
-
-              <div className="pt-3 border-t border-[#232326]">
-                <p className="text-zinc-500 text-xs">
-                  A new puzzle is released every day at midnight UTC. Your progress is saved automatically.
-                </p>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* ─── Stats Modal ───────────────────────────────────────────── */}
-      {showStats && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4" onClick={() => setShowStats(false)}>
-          <div
-            className="w-full max-w-[400px] rounded-2xl border border-[#27272a] bg-[#0f0f10] p-6 shadow-2xl animate-scale-in"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div className="flex items-center justify-between mb-5">
-              <h2 className="font-mono font-bold text-lg text-white">Statistics</h2>
-              <button onClick={() => setShowStats(false)} className="p-1 text-zinc-500 hover:text-white transition-colors">
-                <X size={18} />
-              </button>
-            </div>
-
-            {/* Stats row */}
-            <div className="grid grid-cols-4 gap-3 mb-6">
-              {[
-                { label: 'Played', value: stats.played },
-                { label: 'Win %', value: stats.played ? Math.round((stats.won / stats.played) * 100) : 0 },
-                { label: 'Streak', value: stats.streak },
-                { label: 'Max', value: stats.maxStreak },
-              ].map(({ label, value }) => (
-                <div key={label} className="text-center">
-                  <div className="font-mono text-2xl font-bold text-white">{value}</div>
-                  <div className="font-mono text-[10px] tracking-widest uppercase text-zinc-500 mt-1">{label}</div>
-                </div>
-              ))}
-            </div>
-
-            {/* Distribution */}
-            <div className="space-y-2">
-              <p className="font-mono text-[11px] tracking-widest uppercase text-zinc-500 mb-3">Guess Distribution</p>
-              {Array.from({ length: GAME_CONFIG.maxGuesses }, (_, i) => i + 1).map((n) => {
-                const count = stats.distribution[n] || 0;
-                const max = Math.max(1, ...Object.values(stats.distribution));
-                const pct = stats.played ? (count / max) * 100 : 0;
-                return (
-                  <div key={n} className="flex items-center gap-2 text-sm">
-                    <span className="font-mono text-xs text-zinc-500 w-4 text-right">{n}</span>
-                    <div className="flex-1 h-7 rounded-md bg-[#18181b] border border-[#232326] overflow-hidden">
-                      <div
-                        className="h-full rounded-md bg-emerald-600/80 flex items-center justify-end px-2 transition-all duration-500"
-                        style={{ minWidth: count > 0 ? '28px' : '0px', width: `${pct}%` }}
-                      >
-                        {count > 0 && <span className="font-mono text-[11px] font-bold text-white">{count}</span>}
-                      </div>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-
-            {gameStatus !== 'playing' && (
-              <div className="mt-5 pt-4 border-t border-[#232326] flex justify-center">
-                {gameStatus === 'won' ? (
-                  <button
-                    onClick={() => { shareResults(); setShowStats(false); }}
-                    className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full bg-emerald-600 text-white text-sm font-semibold hover:bg-emerald-500 transition-colors"
-                  >
-                    <Share2 size={14} />
-                    Share Results
-                  </button>
-                ) : (
-                  <button
-                    onClick={() => { resetGame(); setShowStats(false); }}
-                    className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full border border-[#27272a] bg-[#18181b] text-sm font-medium text-zinc-200 hover:bg-[#232326] hover:border-[#3f3f46] transition-colors"
-                  >
-                    <RotateCcw size={14} />
-                    New Word
-                  </button>
-                )}
-              </div>
-            )}
-          </div>
-        </div>
-      )}
 
       {/* ─── Players Panel (multiplayer) ─────────────────────────── */}
       {showPlayers && isMultiplayer && (
@@ -710,10 +592,10 @@ const Game = () => {
               </button>
             </div>
 
-            <div className="space-y-2">
+            <div className="space-y-2 max-h-[65vh] overflow-y-auto pr-1">
               {players.map((p) => {
                 const isMe = socket && p.id === socket.id;
-                const statusIcon = p.status === 'won' ? '🏆' : p.status === 'lost' ? '💀' : '⏳';
+                const StatusIcon = p.status === 'won' ? Trophy : p.status === 'lost' ? Skull : Hourglass;
                 return (
                   <div key={p.id} className={`flex items-center gap-3 px-4 py-3 rounded-xl border ${isMe ? 'bg-[#141416] border-emerald-600/30' : 'bg-[#141416] border-[#27272a]'}`}>
                     <div className="w-9 h-9 rounded-full bg-[#232326] flex items-center justify-center font-mono text-sm font-bold text-zinc-300">
@@ -728,6 +610,9 @@ const Game = () => {
                         <span className="text-[11px] font-mono text-zinc-500">
                           {p.guessCount} guess{p.guessCount !== 1 ? 'es' : ''}
                         </span>
+                        <span className="text-[11px] font-mono text-emerald-400">
+                          {p.totalScore || 0} pts
+                        </span>
                         {p.guessCount > 0 && (
                           <span className="text-[11px] font-mono text-zinc-600">·</span>
                         )}
@@ -740,7 +625,7 @@ const Game = () => {
                         )}
                       </div>
                     </div>
-                    <span className="text-base">{statusIcon}</span>
+                    <StatusIcon size={17} className={p.status === 'won' ? 'text-yellow-400' : p.status === 'lost' ? 'text-red-400' : 'text-zinc-500'} />
                   </div>
                 );
               })}
@@ -766,6 +651,7 @@ const Game = () => {
               <p className="text-sm text-zinc-500 mt-1">
                 The word was <span className="text-emerald-400 font-mono font-bold">{roundResults.word}</span>
               </p>
+              {clue && <p className="text-xs text-zinc-600 mt-2">Clue: {clue}</p>}
             </div>
 
             <div className="space-y-2 mb-5">
@@ -798,16 +684,21 @@ const Game = () => {
           <div className="w-full max-w-[400px] rounded-2xl border border-[#27272a] bg-[#0f0f10] p-6 shadow-2xl animate-scale-in" onClick={(e) => e.stopPropagation()}>
             <div className="text-center mb-5">
               <h2 className="font-mono font-bold text-lg text-white">
-                {isGameOver ? '🏆 Final Leaderboard' : 'Leaderboard'}
+                <span className="flex items-center justify-center gap-2">
+                  {isGameOver && <Trophy size={18} className="text-yellow-400" />}
+                  {isGameOver ? 'Final Leaderboard' : 'Leaderboard'}
+                </span>
               </h2>
             </div>
 
             <div className="space-y-2">
               {leaderboard.map((p) => {
-                const medal = p.rank === 1 ? '🥇' : p.rank === 2 ? '🥈' : p.rank === 3 ? '🥉' : '';
+                const medalColor = p.rank === 1 ? 'text-yellow-400' : p.rank === 2 ? 'text-zinc-300' : 'text-amber-600';
                 return (
                   <div key={p.id} className={`flex items-center gap-3 px-4 py-3 rounded-xl border ${p.rank === 1 ? 'bg-emerald-600/10 border-emerald-600/30' : 'bg-[#141416] border-[#27272a]'}`}>
-                    <span className="text-lg w-8 text-center">{medal || `#${p.rank}`}</span>
+                    <span className="flex items-center justify-center w-8 text-lg">
+                      {p.rank <= 3 ? <Medal size={19} className={medalColor} /> : `#${p.rank}`}
+                    </span>
                     <span className="flex-1 text-sm font-medium text-white">{p.name}</span>
                     <span className="text-sm font-mono font-bold text-emerald-400">{p.totalScore} pts</span>
                   </div>
@@ -816,7 +707,10 @@ const Game = () => {
             </div>
 
             {isGameOver && (
-              <div className="mt-5 pt-4 border-t border-[#232326] flex justify-center">
+              <div className="mt-5 pt-4 border-t border-[#232326] flex flex-col items-center gap-3">
+                <p className="text-xs text-zinc-500 font-mono">
+                  Returning to lobby in {redirectCountdown}s
+                </p>
                 <button
                   onClick={() => { window.location.href = '/lobby'; }}
                   className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full bg-emerald-600 text-white text-sm font-semibold hover:bg-emerald-500 transition-colors"
