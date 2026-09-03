@@ -8,6 +8,7 @@
     "server": "node server.js",
     "dev:all": "concurrently \"npm run dev\" \"npm run server\"",
     "build": "vite build",
+    "start": "node server.js",
     "lint": "oxlint",
     "preview": "vite preview"
   },
@@ -33,7 +34,6 @@
     "tailwindcss": "^4.3.3"
   },
   "devDependencies": {
-    "@cloudflare/containers": "^0.3.7",
     "@types/react": "^19.2.17",
     "@types/react-dom": "^19.2.3",
     "@vitejs/plugin-react": "^6.0.3",
