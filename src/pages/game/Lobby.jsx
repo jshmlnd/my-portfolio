@@ -5,7 +5,7 @@ import { io } from 'socket.io-client';
 
 const SERVER_URL = window.location.hostname === 'localhost'
   ? 'http://localhost:3001'
-  : 'https://jshmlnd.space';
+  : 'https://game-server-wl53.onrender.com';
 
 export default function Lobby() {
   const [socket, setSocket] = useState(null);
@@ -131,9 +131,9 @@ export default function Lobby() {
 
         <div className="relative z-10 max-w-[440px] mx-auto px-4 flex flex-col min-h-screen">
           <header className="flex items-center h-14 shrink-0">
-            <a href="/game" className="inline-flex items-center gap-2 text-zinc-500 hover:text-white transition-colors">
+            <a href="/" className="inline-flex items-center gap-2 text-zinc-500 hover:text-white transition-colors">
               <ArrowLeft size={18} />
-              <span className="font-mono text-xs tracking-wide">Back to Game</span>
+              <span className="font-mono text-xs tracking-wide">Leave</span>
             </a>
           </header>
 

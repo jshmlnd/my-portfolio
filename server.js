@@ -391,7 +391,7 @@ app.get('/{*path}', (req, res) => {
 
 const PORT = process.env.PORT || 3001;
 server.listen(PORT, '0.0.0.0', () => {
-  console.log(`\n  🎮 WordCraft Multiplayer Server`);
+  console.log(`\n  🎮 Multiplayer Server Running`);
   console.log(`  ────────────────────────────────`);
   console.log(`  Local:   http://localhost:${PORT}`);
   console.log(`  Ready for lobbies!\n`);

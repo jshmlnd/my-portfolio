@@ -133,7 +133,7 @@ const Game = () => {
     if (!isMultiplayer) return;
     const SERVER_URL = window.location.hostname === 'localhost'
       ? 'http://localhost:3001'
-      : 'https://jshmlnd.space';
+      : 'https://game-server-wl53.onrender.com';
     const s = io(SERVER_URL, { transports: ['websocket', 'polling'] });
     setSocket(s);
 
