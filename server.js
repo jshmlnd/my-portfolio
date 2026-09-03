@@ -11,6 +11,8 @@ const app = express();
 const server = createServer(app);
 const io = new Server(server, {
   cors: { origin: '*', methods: ['GET', 'POST'] },
+  transports: ['websocket', 'polling'],
+  allowEIO3: true,
 });
 
 // ─── Word Bank (same as client) ────────────────────────────────────
@@ -388,7 +390,7 @@ app.get('/{*path}', (req, res) => {
 });
 
 const PORT = process.env.PORT || 3001;
-server.listen(PORT, () => {
+server.listen(PORT, '0.0.0.0', () => {
   console.log(`\n  🎮 WordCraft Multiplayer Server`);
   console.log(`  ────────────────────────────────`);
   console.log(`  Local:   http://localhost:${PORT}`);
