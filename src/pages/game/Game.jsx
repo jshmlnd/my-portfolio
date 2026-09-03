@@ -573,7 +573,7 @@ const Game = () => {
         </div>
 
         {/* Keyboard */}
-        <div className="pb-6 pt-2 shrink-0">
+        <div className="pb-32 pt-2 shrink-0">
           {KB_ROWS.map((row, ri) => (
             <div key={ri} className="flex justify-center gap-[5px] mb-[5px]">
               {row.map((key) => {
