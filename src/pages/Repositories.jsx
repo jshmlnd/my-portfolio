@@ -72,36 +72,36 @@ const fallbackStackByLanguage = {
   },
 };
 
-const STACK_LABELS = {
-  SiReact: 'React',
-  SiTailwindcss: 'Tailwind',
-  SiDaisyui: 'DaisyUI',
-  SiNodedotjs: 'Node.js',
-  SiMongodb: 'MongoDB',
-  SiExpress: 'Express',
-  SiSocketdotio: 'Socket.IO',
-  SiAxios: 'Axios',
-  SiVercel: 'Vercel',
-  SiAnilist: 'AniList',
-  SiFramer: 'Framer',
-  SiCloudinary: 'Cloudinary',
-  SiReactrouter: 'React Router',
-  SiCloudflare: 'Cloudflare',
-  Box: 'Box',
-  Play: 'Play',
-  Globe: 'Web',
-  FolderGit: 'Git',
-  Server: 'Server',
-};
+// Map component *references* to labels — immune to bundler minification.
+const ICON_LABEL_MAP = new Map([
+  [SiReact, 'React'],
+  [SiTailwindcss, 'Tailwind'],
+  [SiDaisyui, 'DaisyUI'],
+  [SiNodedotjs, 'Node.js'],
+  [SiMongodb, 'MongoDB'],
+  [SiExpress, 'Express'],
+  [SiSocketdotio, 'Socket.IO'],
+  [SiAxios, 'Axios'],
+  [SiVercel, 'Vercel'],
+  [SiAnilist, 'AniList'],
+  [SiFramer, 'Framer'],
+  [SiCloudinary, 'Cloudinary'],
+  [SiReactrouter, 'React Router'],
+  [SiCloudflare, 'Cloudflare'],
+  [Box, 'Box'],
+  [Play, 'Play'],
+  [Globe, 'Web'],
+  [FolderGit, 'Git'],
+  [Server, 'Server'],
+]);
 
 const getStackLabel = (Icon, fallback = 'Stack') => {
   if (!Icon) return fallback;
+  if (ICON_LABEL_MAP.has(Icon)) return ICON_LABEL_MAP.get(Icon);
 
+  // Fallback: try displayName / name then derive a human label
   const name = Icon.displayName || Icon.name || '';
-  if (!name) return fallback;
-
-  if (STACK_LABELS[name]) return STACK_LABELS[name];
-  if (name.length <= 3) return fallback;
+  if (!name || name.length <= 3) return fallback;
 
   return name.replace(/^Si/, '').replace(/([a-z0-9])([A-Z])/g, '$1 $2');
 };
