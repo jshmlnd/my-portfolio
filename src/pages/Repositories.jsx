@@ -72,6 +72,40 @@ const fallbackStackByLanguage = {
   },
 };
 
+const STACK_LABELS = {
+  SiReact: 'React',
+  SiTailwindcss: 'Tailwind',
+  SiDaisyui: 'DaisyUI',
+  SiNodedotjs: 'Node.js',
+  SiMongodb: 'MongoDB',
+  SiExpress: 'Express',
+  SiSocketdotio: 'Socket.IO',
+  SiAxios: 'Axios',
+  SiVercel: 'Vercel',
+  SiAnilist: 'AniList',
+  SiFramer: 'Framer',
+  SiCloudinary: 'Cloudinary',
+  SiReactrouter: 'React Router',
+  SiCloudflare: 'Cloudflare',
+  Box: 'Box',
+  Play: 'Play',
+  Globe: 'Web',
+  FolderGit: 'Git',
+  Server: 'Server',
+};
+
+const getStackLabel = (Icon, fallback = 'Stack') => {
+  if (!Icon) return fallback;
+
+  const name = Icon.displayName || Icon.name || '';
+  if (!name) return fallback;
+
+  if (STACK_LABELS[name]) return STACK_LABELS[name];
+  if (name.length <= 3) return fallback;
+
+  return name.replace(/^Si/, '').replace(/([a-z0-9])([A-Z])/g, '$1 $2');
+};
+
 const getStackForRepo = (repo) => stackByRepo[repo.name] || fallbackStackByLanguage[repo.language] || fallbackStackByLanguage.default;
 
 const toStackItems = (icons, language) => {
@@ -79,7 +113,7 @@ const toStackItems = (icons, language) => {
   if (!components.length) return '';
   return components.map((Icon, index) => ({
     icon: Icon ? <Icon size="16" /> : <span className="w-2 h-2 rounded-full bg-zinc-500" />,
-    label: Icon ? (Icon.displayName || Icon.name.replace(/^Si/, '')) : language,
+    label: Icon ? getStackLabel(Icon, language || 'Stack') : language,
     key: `${language || 'stack'}-${index}`,
   }));
 };
