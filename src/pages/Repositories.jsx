@@ -21,125 +21,67 @@ import {
 import { Box, Play } from 'lucide-react';
 import { useReveal } from '../hooks/useReveal';
 
-const projects = {
-  counseling: {
-    name: 'University Mental Health Support System',
-    role: 'Full Stack Developer',
-    url: 'https://ust-legazpi-mhss.onrender.com',
-    year: '2024',
-    highlight: 'Real-time counseling & academic guidance',
-    frontend: [
-      { icon: <SiReact size="16" />, label: 'React' },
-      { icon: <SiTailwindcss size="16" />, label: 'Tailwind' },
-      { icon: <SiDaisyui size="16" />, label: 'DaisyUI' },
-    ],
-    backend: [
-      { icon: <SiNodedotjs size="16" />, label: 'Node.js' },
-      { icon: <SiMongodb size="16" />, label: 'MongoDB' },
-      { icon: <SiExpress size="16" />, label: 'Express' },
-      { icon: <SiSocketdotio size="16" />, label: 'Socket.io' },
-    ],
-    description:
-      'Web application for university counseling and academic guidance. Real-time messaging with Socket.io, role-based access, and a clean, accessible UI. Backend on Node/Express/MongoDB, frontend on React + Tailwind.',
+const README_URL = 'https://raw.githubusercontent.com/jshmlnd/.github/main/profile/README.md';
+const REPOS_API = 'https://githubprofileapi.joshuaklein-malonda.workers.dev/repos';
+const liveUrlByRepo = {
+  'my-portfolio': 'https://jshmlnd.space',
+  'ani-mei': 'https://animei-snowy.vercel.app/',
+  'ust-legazpi-mhss': 'https://ust-legazpi-mhss.onrender.com',
+  'smors-website': 'https://smors-collection.joshuaklein-malonda.workers.dev/',
+  'MeiShortsAI': 'https://mei-shorts-ai.vercel.app/',
+};
+
+const stackByRepo = {
+  'my-portfolio': {
+    frontend: [SiReact, SiTailwindcss, SiDaisyui],
   },
-  portfolio: {
-    name: 'Personal Portfolio Website',
-    role: 'Frontend Developer',
-    url: 'https://jshmlnd.space',
-    year: '2024',
-    highlight: 'Design-forward personal site',
-    frontend: [
-      { icon: <SiReact size="16" />, label: 'React' },
-      { icon: <SiTailwindcss size="16" />, label: 'Tailwind' },
-      { icon: <SiDaisyui size="16" />, label: 'DaisyUI' },
-    ],
-    backend: '',
-    description: 'Personal portfolio website using React. Built to showcase my skills and creativity.',
+  'ani-mei': {
+    frontend: [SiReact, SiTailwindcss, SiDaisyui],
+    backend: [SiAxios, SiAnilist],
   },
-  animei: {
-    name: 'Animei: Free Anime Streaming Website',
-    role: 'Full Stack Developer',
-    url: 'https://animei-snowy.vercel.app/',
-    year: '2024',
-    highlight: 'Streaming UI · AniMei API',
-    frontend: [
-      { icon: <SiReact size="16" />, label: 'React' },
-      { icon: <SiTailwindcss size="16" />, label: 'Tailwind' },
-      { icon: <SiDaisyui size="16" />, label: 'DaisyUI' },
-      { icon: <SiAnilist size="16" />, label: 'AniMei API' },
-    ],
-    backend: [
-      { icon: <SiAxios size="16" />, label: 'Axios' },
-      { icon: <SiVercel size="16" />, label: 'Vercel Functions' },
-    ],
-    description: 'Free anime streaming experience with modern UI and fast content discovery, built with React and integrated with AniMei API.',
+  'ust-legazpi-mhss': {
+    frontend: [SiReact, SiTailwindcss, SiDaisyui],
+    backend: [SiNodedotjs, SiMongodb, SiExpress, SiSocketdotio],
   },
-  smors: {
-    name: 'SMORS Collection',
-    role: 'Full Stack Developer',
-    url: 'https://smors-collection.joshuaklein-malonda.workers.dev/',
-    year: '2025',
-    highlight: 'E-commerce · Admin back office',
-    frontend: [
-      { icon: <SiReact size="16" />, label: 'React' }, 
-      { icon: <SiTailwindcss size="16" />, label: 'Tailwind' },
-      { icon: <SiDaisyui size="16" />, label: 'DaisyUI' },
-      { icon: <Box size="16" />, label: 'Zustand' },
-      { icon: <SiFramer size="16" />, label: 'Framer Motion' },
-      { icon: <SiReactrouter size="16" />, label: 'React Router' },
-    ],
-    backend: [
-      { icon: <SiNodedotjs size="16" />, label: 'Node.js' },
-      { icon: <SiExpress size="16" />, label: 'Express' },
-      { icon: <SiMongodb size="16" />, label: 'MongoDB' },
-      { icon: <SiCloudinary size="16" />, label: 'Cloudinary' },
-    ],
-    description:
-      'Thrifted fashion storefront with full admin suite: product management, manual GCash/BDO/BPI verification, J&T order tracking, and restoration/customs intake. Cloudflare Workers + Render for backend.',
+  'smors-website': {
+    frontend: [SiReact, SiTailwindcss, SiDaisyui, Box, SiFramer, SiReactrouter],
+    backend: [SiNodedotjs, SiExpress, SiMongodb, SiCloudinary],
   },
-  meishortsai: {
-    name: 'MeiShortsAI',
-    role: 'Full Stack Developer',
-    url: 'https://mei-shorts-ai.vercel.app/',
-    year: '2025',
-    highlight: 'Netflix-style streaming · HLS',
-    frontend: [
-      { icon: <SiReact size="16" />, label: 'React' },
-      { icon: <SiTailwindcss size="16" />, label: 'Tailwind' },
-      { icon: <SiDaisyui size="16" />, label: 'DaisyUI' },
-      { icon: <Box size="16" />, label: 'Zustand' },
-      { icon: <SiFramer size="16" />, label: 'Framer Motion' },
-      { icon: <Play size="16" />, label: 'hls.js' },
-    ],
-    backend: [
-      { icon: <SiAxios size="16" />, label: 'Axios' },
-      { icon: <SiCloudflare size="16" />, label: 'Cloudflare Workers API' },
-    ],
-    description:
-      'Cinematic short-drama streaming integrated with MeiShortsAPI. Ken Burns hero, genre-aware search, custom HLS player with PiP, My List & continue watching, and autoplay-next for binge sessions.',
+  'MeiShortsAI': {
+    frontend: [SiReact, SiTailwindcss, SiDaisyui, Box, SiFramer, Play],
+    backend: [SiAxios, SiCloudflare],
+  },
+  'zjkm666-scraperapi': {
+    frontend: [SiNodedotjs],
+    backend: [SiExpress],
   },
 };
 
-const README_URL = 'https://raw.githubusercontent.com/jshmlnd/.github/main/profile/README.md';
-const REPOS_API = 'https://githubprofileapi.joshuaklein-malonda.workers.dev/repos';
-
-// Enriched metadata for known repos (keeps deployed URLs, stacks, etc.)
-const enrichedByRepo = {
-  'ust-legazpi-mhss': projects.counseling,
-  'my-portfolio': projects.portfolio,
-  'ani-mei': projects.animei,
-  'smors-saas': projects.smors,
-  MeiShortsAI: projects.meishortsai,
-  'zjkm666-scraperapi': {
-    name: 'ScraperAPI — @zjkm666/scraperapi',
-    role: 'NPM Package',
-    url: 'https://www.npmjs.com/package/@zjkm666/scraperapi',
-    year: '2025',
-    highlight: 'CLI + library · npm',
-    frontend: [{ icon: <SiNodedotjs size="16" />, label: 'Node.js' }],
-    backend: [{ icon: <SiExpress size="16" />, label: 'Express' }],
-    description: 'Generate a customizable Express scraping API from any URL — CLI scaffolder + library. Declarative endpoints, Playwright for JS-rendered sites, node-cache. See Packages section.',
+const fallbackStackByLanguage = {
+  JavaScript: {
+    frontend: [SiNodedotjs],
+    backend: [SiExpress],
   },
+  HTML: {
+    frontend: [Globe],
+    backend: [Server],
+  },
+  default: {
+    frontend: [FolderGit],
+    backend: [Server],
+  },
+};
+
+const getStackForRepo = (repo) => stackByRepo[repo.name] || fallbackStackByLanguage[repo.language] || fallbackStackByLanguage.default;
+
+const toStackItems = (icons, language) => {
+  const components = icons || (language ? [null] : []);
+  if (!components.length) return '';
+  return components.map((Icon, index) => ({
+    icon: Icon ? <Icon size="16" /> : <span className="w-2 h-2 rounded-full bg-zinc-500" />,
+    label: Icon ? (Icon.displayName || Icon.name.replace(/^Si/, '')) : language,
+    key: `${language || 'stack'}-${index}`,
+  }));
 };
 
 const LoadingSkeleton = () => (
@@ -156,7 +98,7 @@ const LoadingSkeleton = () => (
 );
 
 const Repositories = () => {
-  const [selected, setSelected] = useState('smors-saas');
+  const [selected, setSelected] = useState('');
   const [readmeContent, setReadmeContent] = useState('');
   const [readmeLoading, setReadmeLoading] = useState(false);
   const [copied, setCopied] = useState(false);
@@ -202,8 +144,7 @@ const Repositories = () => {
       // auto-select first enriched repo if current selection not in list
       setSelected((prev) => {
         if (data.length && !data.find((r) => r.name === prev)) {
-          const preferred = data.find((r) => enrichedByRepo[r.name]) || data[0];
-          return preferred ? preferred.name : prev;
+          return data[0] ? data[0].name : prev;
         }
         return prev;
       });
@@ -233,21 +174,20 @@ const Repositories = () => {
   };
 
   const activeRepo = repos.find((r) => r.name === selected) || null;
-  const enriched = selected ? enrichedByRepo[selected] : null;
-  const activeProject = enriched
-    ? enriched
-    : activeRepo
-      ? {
-          name: activeRepo.name,
-          role: activeRepo.language ? `${activeRepo.language} · ${activeRepo.visibility}` : activeRepo.visibility,
-          url: activeRepo.absoluteUrl,
-          year: activeRepo.updated ? new Date(activeRepo.updated).getFullYear().toString() : '',
-          highlight: activeRepo.description ? activeRepo.description.slice(0, 48) : activeRepo.language || 'Repository',
-          frontend: activeRepo.language ? [{ icon: <span className="w-2 h-2 rounded-full" style={{ background: activeRepo.languageColor?.match(/#[0-9a-fA-F]{3,6}/)?.[0] || '#71717a' }} />, label: activeRepo.language }] : [],
-          backend: '',
-          description: activeRepo.description || `GitHub repository ${activeRepo.name} — ${activeRepo.absoluteUrl}`,
-        }
-      : null;
+  const activeStack = activeRepo ? getStackForRepo(activeRepo) : null;
+  const activeProject = activeRepo
+    ? {
+        ...activeStack,
+        name: activeRepo.name,
+        role: activeRepo.language ? `${activeRepo.language} · ${activeRepo.visibility}` : activeRepo.visibility,
+        url: liveUrlByRepo[activeRepo.name] || activeRepo.absoluteUrl,
+        year: activeRepo.updated ? new Date(activeRepo.updated).getFullYear().toString() : '',
+        highlight: activeRepo.description ? activeRepo.description.slice(0, 48) : activeRepo.language || 'Repository',
+        frontend: toStackItems(activeStack.frontend, activeRepo.language),
+        backend: toStackItems(activeStack.backend),
+        description: activeRepo.description,
+      }
+    : null;
 
   useEffect(() => {
     if (selected === 'readme' && !readmeContent) {
@@ -284,16 +224,8 @@ const Repositories = () => {
     setFrameKey((k) => k + 1);
   };
 
-  // Derived sidebar items from API (fallback to enriched keys if API fails)
-  const sidebarItems = repos.length
-    ? repos
-    : Object.keys(enrichedByRepo).map((name) => ({
-        name,
-        absoluteUrl: `https://github.com/jshmlnd/${name}`,
-        language: null,
-        description: enrichedByRepo[name]?.highlight || null,
-        updated: null,
-      }));
+  // Repository list comes exclusively from the live API.
+  const sidebarItems = repos;
 
   return (
     <section id="projects" className="bg-[#09090b] border-t border-[#1f1f23] px-6 py-16 lg:py-20">
@@ -397,7 +329,7 @@ const Repositories = () => {
                     >
                       <RefreshCw size={10} className={isRefreshing ? 'animate-spin' : ''} /> Retry
                     </button>
-                    <span className="text-[11px] text-amber-200/50">Showing fallback repos.</span>
+                    <span className="text-[11px] text-amber-200/50">No local repositories configured.</span>
                   </div>
                 </div>
               ) : null}
@@ -405,8 +337,7 @@ const Repositories = () => {
                 <ul className="space-y-1">
                   {sidebarItems.map((repo) => {
                     const isActive = selected === repo.name;
-                    const meta = enrichedByRepo[repo.name];
-                    const subtitle = meta ? `${meta.highlight} · ${meta.year}` : `${repo.language || '—'} · ${repo.updated ? new Date(repo.updated).toLocaleDateString() : ''}`;
+                    const subtitle = `${repo.language || '—'} · ${repo.updated ? new Date(repo.updated).toLocaleDateString() : ''}`;
                     return (
                       <li key={repo.name}>
                         <button
