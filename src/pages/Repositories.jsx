@@ -172,7 +172,7 @@ const Repositories = () => {
   const revealRef = useReveal();
   const abortRef = useRef(null);
   const intervalRef = useRef(null);
-  const POLL_INTERVAL = 60_000; // 1 minute
+  const POLL_INTERVAL = 10_000; // 10 seconds
 
   const handleCopy = () => {
     const text = activeProject?.url || activeProject?.name || '';

@@ -38,8 +38,8 @@ const Contact = () => {
 
 
   return (
-    <section id="contact" className="bg-[#09090b] border-t border-[#1f1f23] px-6 py-16 lg:py-20">
-      <div className="max-w-[1160px] mx-auto flex flex-col gap-10 reveal" ref={revealRef}>
+    <section id="contact" className="bg-[#09090b] border-t border-[#1f1f23] px-4 py-12 sm:px-6 sm:py-16 lg:py-20">
+      <div className="max-w-[1160px] w-full mx-auto flex flex-col gap-8 sm:gap-10 reveal" ref={revealRef}>
         {/* Header */}
         <div className="flex flex-col lg:flex-row lg:items-end justify-between gap-6">
           <div className="space-y-3">
@@ -62,7 +62,7 @@ const Contact = () => {
           <div className="absolute inset-0 bg-grid opacity-30 pointer-events-none" />
           <div className="absolute inset-0 bg-gradient-to-br from-emerald-500/5 via-transparent to-sky-500/5 pointer-events-none" />
 
-          <div className="relative p-6 sm:p-8 lg:p-10">
+          <div className="relative p-4 sm:p-6 lg:p-10">
             {status === 'sent' ? (
               <div className="flex flex-col items-center justify-center py-12 text-center space-y-4">
                 <div className="w-16 h-16 rounded-full bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center">
@@ -80,7 +80,7 @@ const Contact = () => {
                 </button>
               </div>
             ) : (
-              <form onSubmit={handleSubmit} className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <form onSubmit={handleSubmit} className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
                 {/* Web3Forms hidden fields */}
                 <input type="hidden" name="access_key" value={WEB3FORMS_ACCESS_KEY} />
                 <input type="hidden" name="subject" value="New Project Inquiry from Portfolio" />
@@ -89,26 +89,26 @@ const Contact = () => {
                 <input type="checkbox" name="botcheck" className="hidden" style={{ display: 'none' }} />
 
                 {/* Name */}
-                <div className="space-y-2">
-                  <label htmlFor="name" className="flex items-center gap-2 font-mono text-[11px] tracking-widest uppercase text-zinc-500">
+                <div className="space-y-2 min-w-0">
+                  <label htmlFor="name" className="flex items-center gap-2 font-mono text-[10px] tracking-widest uppercase text-zinc-500 sm:text-[11px]">
                     <User className="w-3.5 h-3.5" />
-                    Name
+                    Name / Company *
                   </label>
                   <input
                     type="text"
                     id="name"
                     name="name"
                     required
-                    placeholder="First Name"
+                    placeholder="Name / Company"
                     className="w-full px-4 py-3 rounded-lg border border-[#27272a] bg-[#141416] text-white text-sm placeholder-zinc-600 focus:outline-none focus:border-[#3f3f46] focus:bg-[#18181b] transition-colors"
                   />
                 </div>
 
                 {/* Email */}
-                <div className="space-y-2">
-                  <label htmlFor="email" className="flex items-center gap-2 font-mono text-[11px] tracking-widest uppercase text-zinc-500">
+                <div className="space-y-2 min-w-0">
+                  <label htmlFor="email" className="flex items-center gap-2 font-mono text-[10px] tracking-widest uppercase text-zinc-500 sm:text-[11px]">
                     <Mail className="w-3.5 h-3.5" />
-                    Email
+                    Email *
                   </label>
                   <input
                     type="email"
@@ -121,10 +121,10 @@ const Contact = () => {
                 </div>
 
                 {/* Project Type */}
-                <div className="space-y-2 md:col-span-2">
-                  <label htmlFor="projectType" className="flex items-center gap-2 font-mono text-[11px] tracking-widest uppercase text-zinc-500">
+                <div className="space-y-2 min-w-0 md:col-span-2">
+                  <label htmlFor="projectType" className="flex items-center gap-2 font-mono text-[10px] tracking-widest uppercase text-zinc-500 sm:text-[11px]">
                     <Briefcase className="w-3.5 h-3.5" />
-                    Project Type
+                    Project Type *
                   </label>
                   <select
                     id="projectType"
@@ -143,10 +143,10 @@ const Contact = () => {
                 </div>
 
                 {/* Message */}
-                <div className="space-y-2 md:col-span-2">
-                  <label htmlFor="message" className="flex items-center gap-2 font-mono text-[11px] tracking-widest uppercase text-zinc-500">
+                <div className="space-y-2 min-w-0 md:col-span-2">
+                  <label htmlFor="message" className="flex items-center gap-2 font-mono text-[10px] tracking-widest uppercase text-zinc-500 sm:text-[11px]">
                     <MessageSquare className="w-3.5 h-3.5" />
-                    Message
+                    Message *
                   </label>
                   <textarea
                     id="message"
@@ -160,13 +160,13 @@ const Contact = () => {
 
                 {/* Submit */}
                 <div className="md:col-span-2 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-4 pt-2">
-                  <p className="font-mono text-[11px] text-zinc-600">
+                  <p className="font-mono text-[10px] text-zinc-600 sm:text-[11px]">
                     * I typically respond within 24-48 hours
                   </p>
                   <button
                     type="submit"
                     disabled={status === 'sending'}
-                    className="inline-flex items-center justify-center gap-2 px-6 py-3 rounded-lg bg-white text-black font-semibold text-sm hover:bg-zinc-200 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="inline-flex w-full items-center justify-center gap-2 px-6 py-3 rounded-lg bg-white text-black font-semibold text-sm hover:bg-zinc-200 transition-colors disabled:opacity-50 disabled:cursor-not-allowed sm:w-auto"
                   >
                     {status === 'sending' ? (
                       <>

@@ -149,6 +149,16 @@ const Game = () => {
     });
     return breaks;
   }, [target]);
+  const displayCells = useMemo(() => {
+    const cells = [];
+    wordLetters.forEach((_, letterIndex) => {
+      cells.push({ type: 'letter', key: `letter-${letterIndex}`, letterIndex });
+      if (wordBreaks.has(letterIndex)) {
+        cells.push({ type: 'space', key: `space-${letterIndex}` });
+      }
+    });
+    return cells;
+  }, [wordLetters, wordBreaks]);
   const clue = isMultiplayer
     ? wordClue
     : WORD_CLUES[TARGET_WORDS.find((word) => normalizeWord(word) === target)] || '';
@@ -546,8 +556,10 @@ const Game = () => {
             const maxGuesses = GAME_CONFIG.maxGuesses;
             const tileGap = 5;
             const boardWidth = Math.min(460, Math.max(0, viewportWidth - 48));
-            const tileSize = Math.max(1, Math.min(68, Math.floor((boardWidth - (wordLen - 1) * tileGap - wordBreaks.size * 8) / wordLen)));
+            const displaySlotCount = displayCells.length;
+            const tileSize = Math.max(1, Math.min(68, Math.floor((boardWidth - (displaySlotCount - 1) * tileGap) / displaySlotCount)));
             const tileFontSize = Math.max(8, Math.min(24, Math.floor(tileSize * 0.42)));
+
             return (
               <div key={target} className="flex w-full max-w-[460px] flex-col items-center gap-[5px] mb-6" style={{ width: boardWidth }}>
                 {Array.from({ length: maxGuesses }).map((_, rowIdx) => {
@@ -562,29 +574,38 @@ const Game = () => {
                       className={`grid ${isShaking ? 'animate-[shake_0.5s_ease-in-out]' : ''}`}
                       style={{
                         width: '100%',
-                        gridTemplateColumns: `repeat(${wordLen}, minmax(0, 1fr))`,
+                        gridTemplateColumns: `repeat(${displaySlotCount}, minmax(0, 1fr))`,
                         columnGap: tileGap,
                       }}
                     >
-                      {wordLetters.map((_, colIdx) => {
-                        const letter = guess[colIdx] || '';
+                      {displayCells.map((cell) => {
+                        if (cell.type === 'space') {
+                          return (
+                            <div
+                              key={cell.key}
+                              aria-hidden="true"
+                              className="pointer-events-none h-full w-full rounded-xl border-2 border-transparent bg-transparent opacity-0"
+                              style={{ height: tileSize, fontSize: tileFontSize }}
+                            />
+                          );
+                        }
+
+                        const letter = guess[cell.letterIndex] || '';
                         const isFlippingRow = isFlipping;
                         const isAlreadySubmitted = evalRow && !isFlippingRow;
-                        const isCurrentlyRevealing = isFlippingRow && revealedTiles.has(colIdx);
+                        const isCurrentlyRevealing = isFlippingRow && revealedTiles.has(cell.letterIndex);
                         const showColor = isAlreadySubmitted || isCurrentlyRevealing;
                         const colorClass = showColor && evalRow
-                          ? TILE_COLORS[evalRow[colIdx]]
+                          ? TILE_COLORS[evalRow[cell.letterIndex]]
                           : letter
                           ? TILE_COLORS.idle
                           : 'bg-[#0f0f10] border-[#232326]';
 
                         return (
                           <div
-                            key={colIdx}
+                            key={cell.key}
                             style={{ height: tileSize, fontSize: tileFontSize }}
                             className={`flex min-w-0 items-center justify-center rounded-xl border-2 font-mono font-bold uppercase transition-colors duration-200 ${colorClass} ${
-                              wordBreaks.has(colIdx) ? 'mr-2' : ''
-                            } ${
                               isCurrentlyRevealing ? 'animate-[flipTile_0.3s_ease-in-out]' : ''
                             }`}
                           >
