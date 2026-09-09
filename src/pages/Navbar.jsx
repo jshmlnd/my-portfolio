@@ -2,6 +2,8 @@ import { ArrowUpRight } from 'lucide-react';
 import { useState, useEffect, useRef, useLayoutEffect } from 'react';
 import { siGithub } from 'simple-icons';
 import { navItems } from './navItems';
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
+import { faSquareLinkedin } from '@fortawesome/free-brands-svg-icons';
 
 const Navbar = () => {
   const [active, setActive] = useState('hero');
@@ -107,11 +109,10 @@ const Navbar = () => {
 
   return (
     <header
-      className={`sticky top-0 z-50 w-full border-b transition-colors duration-300 ${
-        scrolled
+      className={`sticky top-0 z-50 w-full border-b transition-colors duration-300 ${scrolled
           ? 'bg-[#09090b]/80 backdrop-blur-xl border-[#232326]'
           : 'bg-transparent border-transparent'
-      }`}
+        }`}
     >
       <div className="max-w-[1160px] mx-auto px-6 h-[64px] flex items-center justify-between gap-6">
         {/* Left: wordmark */}
@@ -128,7 +129,7 @@ const Navbar = () => {
           </div>
           <div className="hidden sm:flex flex-col leading-none">
             <span className="font-mono font-semibold text-[13px] tracking-tight text-white group-hover:text-zinc-200 transition-colors">
-              jshmlnd
+              jshmlnd.dev
             </span>
             <span className="font-mono text-[10px] tracking-widest uppercase text-zinc-500">
               Full-stack Dev
@@ -218,9 +219,8 @@ const Navbar = () => {
                     }, 460);
                   }
                 }}
-                className={`relative z-10 px-4 py-1.5 rounded-full text-[13px] font-medium select-none active:scale-[0.97] transition-colors duration-200 ${
-                  isActive ? 'text-black' : 'text-zinc-400 hover:text-zinc-200'
-                }`}
+                className={`relative z-10 px-4 py-1.5 rounded-full text-[13px] font-medium select-none active:scale-[0.97] transition-colors duration-200 ${isActive ? 'text-black' : 'text-zinc-400 hover:text-zinc-200'
+                  }`}
               >
                 <span className="relative inline-flex items-center">
                   {label}
@@ -257,9 +257,9 @@ const Navbar = () => {
             target="_blank"
             rel="noopener noreferrer"
             aria-label="Hire me on LinkedIn"
-            className="hidden sm:inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white text-black text-[13px] font-medium hover:bg-zinc-100 transition-colors"
+            className="hidden sm:inline-flex items-center gap-1 px-4 py-2 rounded-full bg-white text-[13px] hover:bg-zinc-200 transition-colors"
           >
-            Hire Me <ArrowUpRight size={14} />
+            <span className="text-black font-medium">Hire Me</span> <FontAwesomeIcon icon={faSquareLinkedin} size="lg" style={{color: "rgb(30,144,255)",}} />
           </a>
 
           {/* Mobile toggle */}
@@ -289,11 +289,10 @@ const Navbar = () => {
                   e.preventDefault();
                   scrollTo(href);
                 }}
-                className={`px-4 py-3 rounded-xl text-sm font-medium border transition-colors ${
-                  active === id
+                className={`px-4 py-3 rounded-xl text-sm font-medium border transition-colors ${active === id
                     ? 'bg-white text-black border-white'
                     : 'bg-[#18181b] border-[#27272a] text-zinc-300 hover:border-[#3f3f46] hover:text-white'
-                }`}
+                  }`}
               >
                 {label}
               </a>

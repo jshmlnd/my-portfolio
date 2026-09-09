@@ -1,5 +1,6 @@
 import { siGithub, siFacebook } from 'simple-icons';
 import { navItems } from './navItems';
+import { MapPin } from 'lucide-react';
 
 // simple-icons removed the LinkedIn icon (v11+), so its path is inlined here
 const siLinkedin = {
@@ -58,7 +59,8 @@ const Footer = () => {
                 <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
                 Deployed
               </span>
-              <span className="inline-flex items-center px-2.5 py-1 rounded-full border border-[#27272a] bg-[#0f0f10] font-mono text-[11px] tracking-wide text-zinc-500">
+              <span className="inline-flex gap-1 items-center px-2.5 py-1 rounded-full border border-[#27272a] bg-[#0f0f10] font-mono text-[11px] tracking-wide text-zinc-500">
+                <MapPin size="12" className="text-indigo-400"/>
                 Legazpi City, PH
               </span>
             </div>
