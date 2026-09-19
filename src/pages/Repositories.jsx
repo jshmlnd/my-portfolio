@@ -23,13 +23,6 @@ import { useReveal } from '../hooks/useReveal';
 
 const README_URL = 'https://raw.githubusercontent.com/jshmlnd/.github/main/profile/README.md';
 const REPOS_API = 'https://githubprofileapi.joshuaklein-malonda.workers.dev/repos';
-const liveUrlByRepo = {
-  'my-portfolio': 'https://jshmlnd.space',
-  'ani-mei': 'https://animei-snowy.vercel.app/',
-  'ust-legazpi-mhss': 'https://ust-legazpi-mhss.onrender.com',
-  'smors-website': 'https://smors-collection.joshuaklein-malonda.workers.dev/',
-  'MeiShortsAI': 'https://mei-shorts-ai.vercel.app/',
-};
 
 const stackByRepo = {
   'my-portfolio': {
@@ -214,7 +207,7 @@ const Repositories = () => {
         ...activeStack,
         name: activeRepo.name,
         role: activeRepo.language ? `${activeRepo.language} · ${activeRepo.visibility}` : activeRepo.visibility,
-        url: liveUrlByRepo[activeRepo.name] || activeRepo.absoluteUrl,
+        url: activeRepo.website || activeRepo.absoluteUrl,
         year: activeRepo.updated ? new Date(activeRepo.updated).getFullYear().toString() : '',
         highlight: activeRepo.description ? activeRepo.description.slice(0, 48) : activeRepo.language || 'Repository',
         frontend: toStackItems(activeStack.frontend, activeRepo.language),
