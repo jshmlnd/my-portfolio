@@ -18,11 +18,27 @@ import {
   SiReactrouter,
   SiCloudflare,
 } from 'react-icons/si';
-import { Box, Play } from 'lucide-react';
+import { Braces, Box, Play } from 'lucide-react';
 import { useReveal } from '../hooks/useReveal';
+import JsonPreview from '../components/JsonPreview';
 
 const README_URL = 'https://raw.githubusercontent.com/jshmlnd/.github/main/profile/README.md';
 const REPOS_API = 'https://githubprofileapi.joshuaklein-malonda.workers.dev/repos';
+
+// Repos that look like JSON APIs get a native dark JSON preview instead of a
+// sandboxed iframe (browsers render raw JSON as an ugly white page).
+const looksLikeJsonApi = (url, name) => {
+  try {
+    const u = new URL(url);
+    return (
+      /api$/i.test(name) || // animeiapi, kdramaapi, GitHubRepositoryAPI…
+      /(^|\.)api[.-]/i.test(u.hostname) || // api.example.com
+      /\/api(\/|$)/i.test(u.pathname) // example.com/api/…
+    );
+  } catch {
+    return false;
+  }
+};
 
 const stackByRepo = {
   'my-portfolio': {
@@ -132,6 +148,9 @@ const Repositories = () => {
   const [frameLoading, setFrameLoading] = useState(true);
   const [frameError, setFrameError] = useState(false);
   const [frameKey, setFrameKey] = useState(0);
+  const [previewKind, setPreviewKind] = useState('empty'); // 'empty' | 'probe' | 'json' | 'iframe'
+  const [jsonPayload, setJsonPayload] = useState(null); // { parsed, raw }
+  const [probeFail, setProbeFail] = useState(null); // 'cors' (unreadable) | 'notjson' (HTML response)
   const [repos, setRepos] = useState([]);
   const [reposLoading, setReposLoading] = useState(true);
   const [reposError, setReposError] = useState(null);
@@ -215,6 +234,7 @@ const Repositories = () => {
         description: activeRepo.description,
       }
     : null;
+  const apiLike = activeProject?.url ? looksLikeJsonApi(activeProject.url, activeProject.name) : false;
 
   useEffect(() => {
     if (selected === 'readme' && !readmeContent) {
@@ -250,6 +270,67 @@ const Repositories = () => {
     setFrameError(false);
     setFrameKey((k) => k + 1);
   };
+
+  // JSON API probe — for API-like repos, fetch the URL and render the JSON in
+  // the dark viewer; anything else (HTML, CORS-blocked, non-JSON) falls back
+  // to the sandboxed iframe exactly as before.
+  useEffect(() => {
+    if (selected === 'readme' || !activeProject?.url) {
+      setPreviewKind('empty');
+      setJsonPayload(null);
+      setProbeFail(null);
+      return;
+    }
+    if (!looksLikeJsonApi(activeProject.url, activeProject.name)) {
+      setPreviewKind('iframe');
+      setJsonPayload(null);
+      setProbeFail(null);
+      return;
+    }
+    let cancelled = false;
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 5000);
+    setPreviewKind('probe');
+    setJsonPayload(null);
+    setProbeFail(null);
+    setFrameLoading(true);
+    setFrameError(false);
+    fetch(activeProject.url, { signal: controller.signal, headers: { Accept: 'application/json' } })
+      .then((res) => {
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        return res.text();
+      })
+      .then((text) => {
+        if (cancelled) return;
+        let parsed = null;
+        try {
+          parsed = JSON.parse(text);
+        } catch {
+          parsed = null;
+        }
+        if (parsed !== null && typeof parsed === 'object') {
+          setJsonPayload({ parsed, raw: text });
+          setPreviewKind('json');
+          setFrameLoading(false);
+        } else {
+          setProbeFail('notjson'); // readable but HTML/text — it's a site, use the iframe
+          setPreviewKind('iframe');
+        }
+      })
+      .catch(() => {
+        if (!cancelled) {
+          setProbeFail('cors'); // blocked from reading (no CORS headers, offline, HTTP error)
+          setPreviewKind('iframe');
+        }
+      })
+      .finally(() => clearTimeout(timeout));
+    return () => {
+      cancelled = true;
+      controller.abort();
+      clearTimeout(timeout);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selected, activeProject?.url, activeProject?.name, frameKey]);
 
   // Repository list comes exclusively from the live API.
   const sidebarItems = repos;
@@ -574,7 +655,54 @@ const Repositories = () => {
                       </article>
                     </div>
                   )
-                ) : activeProject && activeProject.url ? (
+                ) : previewKind === 'json' && jsonPayload ? (
+                  <JsonPreview data={jsonPayload.parsed} raw={jsonPayload.raw} name={activeProject.name} />
+                ) : activeProject && activeProject.url && previewKind !== 'probe' && apiLike && probeFail === 'cors' ? (
+                  <div className="absolute inset-0 flex flex-col items-center justify-center gap-4 p-8 text-center">
+                    {/* API endpoint the browser can't read inline (no CORS headers) —
+                        on-brand panel instead of the raw white JSON dump */}
+                    <div className="w-12 h-12 rounded-2xl bg-[#141416] border border-[#27272a] flex items-center justify-center text-emerald-500">
+                      <Braces size={20} />
+                    </div>
+                    <div className="space-y-2">
+                      <p className="text-sm font-semibold text-white">JSON API endpoint</p>
+                      <p className="text-xs leading-5 text-zinc-500 max-w-[380px]">
+                        This project is an API — the live response is raw JSON, which can’t be rendered inline without CORS headers.
+                      </p>
+                    </div>
+                    <div className="w-full max-w-[440px] rounded-xl border border-[#232326] bg-[#141416] p-3 text-left">
+                      <p className="font-mono text-[10px] tracking-widest uppercase text-zinc-600">quick test</p>
+                      <div className="mt-1.5 flex items-center gap-2">
+                        <code className="flex-1 min-w-0 font-mono text-[11px] text-zinc-400 truncate">
+                          <span className="text-emerald-500">$</span> curl -s {activeProject.url.replace('https://', '')} | jq
+                        </code>
+                        <button
+                          onClick={() => navigator.clipboard.writeText(`curl -s ${activeProject.url} | jq`)}
+                          className="w-6 h-6 shrink-0 rounded-md flex items-center justify-center text-zinc-600 hover:text-zinc-300 hover:bg-[#1a1a1e] transition-colors"
+                          title="Copy command"
+                        >
+                          <Copy size={11} />
+                        </button>
+                      </div>
+                    </div>
+                    <div className="flex gap-2">
+                      <a
+                        href={activeProject.url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline-flex items-center gap-1.5 px-4 py-2 rounded-full bg-white text-black text-xs font-semibold hover:bg-zinc-100 transition-colors"
+                      >
+                        Open endpoint <ExternalLink size={12} />
+                      </a>
+                      <button
+                        onClick={handleRefresh}
+                        className="inline-flex items-center gap-1.5 px-4 py-2 rounded-full border border-[#27272a] bg-[#141416] text-xs font-medium text-zinc-300 hover:border-[#3f3f46] hover:text-white transition-colors"
+                      >
+                        <RefreshCw size={12} /> Retry
+                      </button>
+                    </div>
+                  </div>
+                ) : activeProject && activeProject.url && previewKind !== 'probe' ? (
                   <>
                     <iframe
                       key={frameKey}
@@ -663,7 +791,15 @@ const Repositories = () => {
                   </span>
                 </div>
                 <span className="font-mono text-[11px] text-zinc-600 hidden sm:inline shrink-0">
-                  {frameLoading ? 'Loading…' : frameError ? 'Blocked · open externally' : 'Preview · sandboxed iframe'}
+                  {frameLoading
+                    ? 'Loading…'
+                    : previewKind === 'json'
+                      ? 'JSON API · rendered natively'
+                      : apiLike && probeFail === 'cors'
+                        ? 'JSON API · open externally'
+                        : frameError
+                          ? 'Blocked · open externally'
+                          : 'Preview · sandboxed iframe'}
                 </span>
               </div>
             </div>
