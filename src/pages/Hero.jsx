@@ -225,7 +225,7 @@ const Hero = () => {
                       {techStack.map(({ name, icon }) => (
                         <div
                           key={name}
-                          className="flex items-center gap-2 px-2.5 py-2 rounded-xl border border-[#232326] bg-[#141416] hover:bg-[#1a1a1e] hover:border-[#2e2e32] transition-colors group"
+                          className="flex items-center gap-2 px-2 py-2 rounded-xl border border-[#232326] bg-[#141416] hover:bg-[#1a1a1e] hover:border-[#2e2e32] transition-colors group"
                         >
                           <svg
                             role="img"
@@ -237,7 +237,7 @@ const Hero = () => {
                           >
                             <path d={icon.path} />
                           </svg>
-                          <span className="text-[12px] font-medium text-zinc-300 group-hover:text-white truncate">
+                          <span className="text-[12px] font-medium text-zinc-300 group-hover:text-white leading-tight min-w-0">
                             {name}
                           </span>
                         </div>

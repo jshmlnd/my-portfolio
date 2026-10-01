@@ -14,28 +14,65 @@ const Navbar = () => {
   const itemRefs = useRef({});
   const [activeRect, setActiveRect] = useState({ left: 0, width: 0 });
   const [hoverRect, setHoverRect] = useState({ left: 0, width: 0 });
+  const activeRef = useRef('hero');
+  const hoveredRef = useRef(null);
+  activeRef.current = active;
+  hoveredRef.current = hovered;
+  // True while a nav click's rAF scroll animation is running — the scroll-spy
+  // stays quiet so the pill glides once, straight to the target (no mid-scroll hops).
+  // Counter so overlapping animations don't clear each other's guard.
+  const programmaticScroll = useRef(0);
 
   useEffect(() => {
+    // rAF-throttled + change-gated: setting identical state bails out of the
+    // re-render, so scrolling no longer re-renders the blurred header on every
+    // scroll event (that re-render storm was a big part of the jank).
+    let ticking = false;
     const onScroll = () => {
-      setScrolled(window.scrollY > 8);
-      setMobileOpen(false);
+      if (ticking) return;
+      ticking = true;
+      requestAnimationFrame(() => {
+        ticking = false;
+        setScrolled(window.scrollY > 8);
+        setMobileOpen((prev) => (prev ? false : prev));
+      });
     };
     window.addEventListener('scroll', onScroll, { passive: true });
     return () => window.removeEventListener('scroll', onScroll);
   }, []);
 
   useEffect(() => {
-    const sections = navItems.map((item) => document.getElementById(item.id));
-    const observer = new IntersectionObserver(
-      (entries) => {
-        entries.forEach((entry) => {
-          if (entry.isIntersecting) setActive(entry.target.id);
-        });
-      },
-      { rootMargin: '-20% 0px -60% 0px' }
-    );
-    sections.forEach((s) => s && observer.observe(s));
-    return () => observer.disconnect();
+    // Position-based scroll-spy: exactly one deterministic answer per frame.
+    // (The old IntersectionObserver fired on every enter/exit of its margin band
+    // and flapped active between sections during fast scrolls — jagged pill.)
+    let ticking = false;
+    const update = () => {
+      ticking = false;
+      if (programmaticScroll.current > 0) return;
+      const line = window.innerHeight * 0.4;
+      let current = navItems[0].id;
+      for (const { id } of navItems) {
+        const el = document.getElementById(id);
+        if (el && el.getBoundingClientRect().top <= line) current = id;
+      }
+      const doc = document.documentElement;
+      if (window.scrollY + window.innerHeight >= doc.scrollHeight - 2) {
+        current = navItems[navItems.length - 1].id;
+      }
+      setActive((prev) => (prev === current ? prev : current));
+    };
+    const onScroll = () => {
+      if (ticking) return;
+      ticking = true;
+      requestAnimationFrame(update);
+    };
+    update();
+    window.addEventListener('scroll', onScroll, { passive: true });
+    window.addEventListener('resize', onScroll);
+    return () => {
+      window.removeEventListener('scroll', onScroll);
+      window.removeEventListener('resize', onScroll);
+    };
   }, []);
 
   // Measure pill positions for soft slide — targetId-aware to avoid stale closure
@@ -46,7 +83,8 @@ const Navbar = () => {
     const navRect = nav.getBoundingClientRect();
     const rect = el.getBoundingClientRect();
     setActiveRect({
-      left: rect.left - navRect.left,
+      // nav.clientLeft: abs children position from the padding box, not the border box
+      left: rect.left - navRect.left - nav.clientLeft,
       width: rect.width,
     });
   };
@@ -58,35 +96,36 @@ const Navbar = () => {
     const navRect = nav.getBoundingClientRect();
     const rect = el.getBoundingClientRect();
     setHoverRect({
-      left: rect.left - navRect.left,
+      left: rect.left - navRect.left - nav.clientLeft,
       width: rect.width,
     });
   };
 
-  // Defer active rect update to next frame so CSS transition can fire
-  // (useLayoutEffect + rAF ensures old position paints before new position)
+  // Measure synchronously when active changes. CSS transitions start from the
+  // last committed style, so no rAF deferral is needed — and this keeps the
+  // pill slide independent of frame timing (one frame faster, too).
   useLayoutEffect(() => {
-    const raf = requestAnimationFrame(() => updateActiveRect(active));
-    return () => cancelAnimationFrame(raf);
+    updateActiveRect(active);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [active]);
 
   useEffect(() => {
-    // initial + resize observer
-    updateActiveRect(active);
-    if (hovered) updateHoverRect(hovered);
+    // resize + late font-swap re-measure only — active/hovered changes are handled
+    // by the layout effect above and the direct hover handlers (no duplicate work)
     const onResize = () => {
-      updateActiveRect(active);
-      if (hovered) updateHoverRect(hovered);
+      updateActiveRect(activeRef.current);
+      if (hoveredRef.current) updateHoverRect(hoveredRef.current);
     };
     window.addEventListener('resize', onResize);
     const t = setTimeout(onResize, 50);
+    // Re-measure once webfonts finish loading — pill width depends on text metrics
+    if (document.fonts?.ready) document.fonts.ready.then(() => updateActiveRect(activeRef.current));
     return () => {
       window.removeEventListener('resize', onResize);
       clearTimeout(t);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [hovered, active]);
+  }, []);
 
   const scrollTo = (href) => {
     const el = document.querySelector(href);
@@ -96,12 +135,14 @@ const Navbar = () => {
     const distance = y - start;
     const duration = 550;
     let startTime = null;
+    programmaticScroll.current += 1;
     const step = (ts) => {
       if (!startTime) startTime = ts;
       const p = Math.min((ts - startTime) / duration, 1);
       const ease = 1 - Math.pow(1 - p, 3);
       window.scrollTo(0, start + distance * ease);
       if (p < 1) requestAnimationFrame(step);
+      else programmaticScroll.current -= 1;
     };
     requestAnimationFrame(step);
     setMobileOpen(false);
@@ -145,31 +186,25 @@ const Navbar = () => {
           className="hidden md:flex relative items-center gap-1 p-1 rounded-full bg-[#18181b] border border-[#27272a]"
           aria-label="Primary"
         >
-          {/* Active slide indicator - soft spring */}
+          {/* Active slide indicator — springy, compositor-driven (transform, not left/width) */}
           <div
             aria-hidden
-            className="absolute top-1 bottom-1 bg-white rounded-full shadow-sm pointer-events-none"
+            className={`nav-pill ${activeRect.width ? 'nav-pill-ready' : ''} absolute top-1 bottom-1 left-0 bg-white rounded-full shadow-sm pointer-events-none will-change-transform`}
             style={{
-              left: activeRect.left,
+              transform: `translateX(${activeRect.left}px)`,
               width: activeRect.width,
               opacity: activeRect.width ? 1 : 0,
-              transition:
-                'left 420ms cubic-bezier(0.32, 0.72, 0, 1), width 420ms cubic-bezier(0.32, 0.72, 0, 1), opacity 160ms ease',
             }}
           />
 
-          {/* Hover slide indicator - softer & lighter */}
+          {/* Hover slide indicator — softer & lighter */}
           <div
             aria-hidden
-            className="absolute top-1 bottom-1 bg-white/[0.06] rounded-full pointer-events-none"
+            className="nav-pill-hover absolute top-1 bottom-1 left-0 bg-white/[0.06] rounded-full pointer-events-none will-change-transform"
             style={{
-              left: hoverRect.left,
+              transform: `translateX(${hoverRect.left}px)`,
               width: hoverRect.width,
               opacity: hovered && hovered !== active ? 1 : 0,
-              transition:
-                hovered && hovered !== active
-                  ? 'left 260ms cubic-bezier(0.16, 1, 0.3, 1), width 260ms cubic-bezier(0.16, 1, 0.3, 1), opacity 160ms ease'
-                  : 'left 200ms ease, width 200ms ease, opacity 120ms ease',
             }}
           />
 
@@ -195,18 +230,11 @@ const Navbar = () => {
                 onBlur={() => setHovered(null)}
                 onClick={(e) => {
                   e.preventDefault();
-                  const isSame = active === id;
                   // Clear hover during the active slide so the white pill is unobstructed
                   // — fixes: click while still hovering didn't appear to animate
                   const wasHoveringTarget = hovered === id;
                   if (wasHoveringTarget) setHovered(null);
-                  if (!isSame) {
-                    setActive(id);
-                    // schedule rect update with explicit target — avoids stale closure
-                    requestAnimationFrame(() => updateActiveRect(id));
-                    // double-rAF ensures paint of old position before transition
-                    requestAnimationFrame(() => requestAnimationFrame(() => updateActiveRect(id)));
-                  }
+                  setActive(id); // layout effect + CSS transition handle the slide
                   scrollTo(href);
                   // restore hover if pointer is still over the target after slide
                   if (wasHoveringTarget) {
