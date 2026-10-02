@@ -42,8 +42,63 @@ const playClickSound = async () => {
   setTimeout(() => playTone(600, 0.06, 'square', 0.08), 30);
 };
 
+// A-minor pentatonic (E5 G5 A5 C6 D6): any random pick is consonant, so
+// consecutive hovers read as a soft chime instead of a repeated beep.
+const HOVER_NOTES = [659.25, 783.99, 880, 1046.5, 1174.66];
+
+// Warm bell-like pluck for hovers: sine fundamental + quiet octave partial
+// through a gentle lowpass, short exponential tail, and slight random detune
+// and stereo placement so repeated hovers never feel mechanical.
 const playHoverSound = async () => {
-  await playTone(1200, 0.08, 'sine', 0.4);
+  await ensureAudioReady();
+  if (!audioContext || audioContext.state === 'suspended') return;
+
+  const now = audioContext.currentTime;
+  const duration = 0.16 + Math.random() * 0.06;
+  const frequency = HOVER_NOTES[Math.floor(Math.random() * HOVER_NOTES.length)];
+
+  const filter = audioContext.createBiquadFilter();
+  filter.type = 'lowpass';
+  filter.frequency.value = 3200;
+  filter.Q.value = 0.5;
+
+  const body = audioContext.createOscillator();
+  body.type = 'sine';
+  body.frequency.setValueAtTime(frequency * 1.008, now);
+  body.frequency.exponentialRampToValueAtTime(frequency, now + 0.06);
+
+  const shimmer = audioContext.createOscillator();
+  shimmer.type = 'sine';
+  shimmer.frequency.value = frequency * 2 * (1 + (Math.random() - 0.5) * 0.004);
+  const shimmerGain = audioContext.createGain();
+  shimmerGain.gain.value = 0.16;
+
+  const envelope = audioContext.createGain();
+  envelope.gain.setValueAtTime(0, now);
+  envelope.gain.linearRampToValueAtTime(0.28, now + 0.008);
+  envelope.gain.exponentialRampToValueAtTime(0.0008, now + duration);
+
+  body.connect(filter);
+  shimmer.connect(shimmerGain).connect(filter);
+  filter.connect(envelope);
+
+  let tail = envelope;
+  if (audioContext.createStereoPanner) {
+    const panner = audioContext.createStereoPanner();
+    panner.pan.value = (Math.random() - 0.5) * 0.6;
+    envelope.connect(panner);
+    tail = panner;
+  }
+  tail.connect(masterGain);
+
+  const stopAt = now + duration + 0.02;
+  body.start(now);
+  shimmer.start(now);
+  body.stop(stopAt);
+  shimmer.stop(stopAt);
+
+  // Drop this one-off graph off the master bus once the tail has finished.
+  body.onended = () => tail.disconnect();
 };
 
 const playSuccessSound = async () => {
@@ -59,6 +114,7 @@ const playErrorSound = async () => {
 
 export const useSound = () => {
   const hoverPlayedRef = useRef(new Set());
+  const lastHoverAtRef = useRef(0);
   const enabledRef = useRef(true);
 
   const enable = useCallback(() => { enabledRef.current = true; }, []);
@@ -71,6 +127,10 @@ export const useSound = () => {
   const playHover = useCallback((elementId) => {
     if (!enabledRef.current) return;
     if (hoverPlayedRef.current.has(elementId)) return;
+    // Global throttle: keeps a fast sweep across many links from machine-gunning.
+    const now = performance.now();
+    if (now - lastHoverAtRef.current < 70) return;
+    lastHoverAtRef.current = now;
     hoverPlayedRef.current.add(elementId);
     playHoverSound();
     setTimeout(() => hoverPlayedRef.current.delete(elementId), 300);
