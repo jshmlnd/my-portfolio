@@ -130,12 +130,6 @@ const Footer = () => {
         <div className="flex flex-col sm:flex-row items-center justify-between gap-3 py-5 border-t border-[#1f1f23] font-mono text-xs tracking-wide text-zinc-600">
           <p>© {new Date().getFullYear()} jshmlnd — All rights reserved.</p>
           <p className="flex items-center gap-2">
-              <a
-                href="/lobby"
-                className="text-zinc-600 hover:text-white transition-colors inline-flex items-center">
-                Sandbox
-              </a>
-            <span className="hidden sm:inline w-1 h-1 rounded-full bg-zinc-700" />
             <span>Built with React</span>
             <span className="hidden sm:inline w-1 h-1 rounded-full bg-zinc-700" />
             <span className="hidden sm:inline">Deployed with love. </span>
