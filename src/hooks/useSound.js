@@ -42,64 +42,6 @@ const playClickSound = async () => {
   setTimeout(() => playTone(600, 0.06, 'square', 0.08), 30);
 };
 
-// A-minor pentatonic (E5 G5 A5 C6 D6): any random pick is consonant, so
-// consecutive hovers read as a soft chime instead of a repeated beep.
-const HOVER_NOTES = [659.25, 783.99, 880, 1046.5, 1174.66];
-
-// Warm bell-like pluck for hovers: sine fundamental + quiet octave partial
-// through a gentle lowpass, short exponential tail, and slight random detune
-// and stereo placement so repeated hovers never feel mechanical.
-const playHoverSound = async () => {
-  await ensureAudioReady();
-  if (!audioContext || audioContext.state === 'suspended') return;
-
-  const now = audioContext.currentTime;
-  const duration = 0.16 + Math.random() * 0.06;
-  const frequency = HOVER_NOTES[Math.floor(Math.random() * HOVER_NOTES.length)];
-
-  const filter = audioContext.createBiquadFilter();
-  filter.type = 'lowpass';
-  filter.frequency.value = 3200;
-  filter.Q.value = 0.5;
-
-  const body = audioContext.createOscillator();
-  body.type = 'sine';
-  body.frequency.setValueAtTime(frequency * 1.008, now);
-  body.frequency.exponentialRampToValueAtTime(frequency, now + 0.06);
-
-  const shimmer = audioContext.createOscillator();
-  shimmer.type = 'sine';
-  shimmer.frequency.value = frequency * 2 * (1 + (Math.random() - 0.5) * 0.004);
-  const shimmerGain = audioContext.createGain();
-  shimmerGain.gain.value = 0.16;
-
-  const envelope = audioContext.createGain();
-  envelope.gain.setValueAtTime(0, now);
-  envelope.gain.linearRampToValueAtTime(0.28, now + 0.008);
-  envelope.gain.exponentialRampToValueAtTime(0.0008, now + duration);
-
-  body.connect(filter);
-  shimmer.connect(shimmerGain).connect(filter);
-  filter.connect(envelope);
-
-  let tail = envelope;
-  if (audioContext.createStereoPanner) {
-    const panner = audioContext.createStereoPanner();
-    panner.pan.value = (Math.random() - 0.5) * 0.6;
-    envelope.connect(panner);
-    tail = panner;
-  }
-  tail.connect(masterGain);
-
-  const stopAt = now + duration + 0.02;
-  body.start(now);
-  shimmer.start(now);
-  body.stop(stopAt);
-  shimmer.stop(stopAt);
-
-  // Drop this one-off graph off the master bus once the tail has finished.
-  body.onended = () => tail.disconnect();
-};
 
 const playSuccessSound = async () => {
   await playTone(523.25, 0.1, 'sine', 0.1);
@@ -113,8 +55,6 @@ const playErrorSound = async () => {
 };
 
 export const useSound = () => {
-  const hoverPlayedRef = useRef(new Set());
-  const lastHoverAtRef = useRef(0);
   const enabledRef = useRef(true);
 
   const enable = useCallback(() => { enabledRef.current = true; }, []);
@@ -124,17 +64,6 @@ export const useSound = () => {
     if (enabledRef.current) playClickSound();
   }, []);
 
-  const playHover = useCallback((elementId) => {
-    if (!enabledRef.current) return;
-    if (hoverPlayedRef.current.has(elementId)) return;
-    // Global throttle: keeps a fast sweep across many links from machine-gunning.
-    const now = performance.now();
-    if (now - lastHoverAtRef.current < 70) return;
-    lastHoverAtRef.current = now;
-    hoverPlayedRef.current.add(elementId);
-    playHoverSound();
-    setTimeout(() => hoverPlayedRef.current.delete(elementId), 300);
-  }, []);
 
   const playSuccess = useCallback(() => {
     if (enabledRef.current) playSuccessSound();
@@ -168,57 +97,22 @@ export const useSound = () => {
     };
   }, []);
 
-  return { playClick, playHover, playSuccess, playError, enable, disable };
+  return { playClick, playSuccess, playError, enable, disable };
 };
 
 export const useSoundProvider = () => {
-  const { playClick, playHover, playSuccess, playError, enable, disable } = useSound();
+  const { playClick, playSuccess, playError, enable, disable } = useSound();
 
   useEffect(() => {
     const handleClick = (e) => {
       const target = e.target.closest('button, a, [role="button"], input[type="button"], input[type="submit"], select, summary, .cursor-pointer');
-      if (target) {
-        const id = target.dataset.soundId;
-        // If this element was recently hovered (mobile tap), cancel pending hover sound
-        if (id && hoverTimeoutRef.current?.id === id) {
-          clearTimeout(hoverTimeoutRef.current.timeout);
-          hoverTimeoutRef.current = null;
-        }
-        playClick();
-      }
-    };
-
-    const hoverTimeoutRef = { current: null };
-    const lastHoverRef = { current: null, time: 0 };
-    const handleMouseEnter = (e) => {
-      const target = e.target.closest('button, a, [role="button"], input[type="button"], input[type="submit"], select, summary, .cursor-pointer');
-      if (!target) return;
-      const id = target.id || target.dataset.soundId || Math.random().toString(36).slice(2);
-      target.dataset.soundId = id;
-      
-      // Debounce rapid hovers on same element
-      if (lastHoverRef.current === id && Date.now() - lastHoverRef.time < 350) return;
-      lastHoverRef.current = id;
-      lastHoverRef.time = Date.now();
-
-      // Delay hover sound slightly - if click follows (mobile tap), cancel it
-      const timeout = setTimeout(() => {
-        hoverTimeoutRef.current = null;
-        playHover(id);
-      }, 50);
-      
-      hoverTimeoutRef.current = { id, timeout };
+      if (target) playClick();
     };
 
     document.addEventListener('click', handleClick, { passive: true });
-    document.addEventListener('mouseover', handleMouseEnter, { passive: true });
 
-    return () => {
-      document.removeEventListener('click', handleClick);
-      document.removeEventListener('mouseover', handleMouseEnter);
-      if (hoverTimeoutRef.current) clearTimeout(hoverTimeoutRef.current.timeout);
-    };
-  }, [playClick, playHover]);
+    return () => document.removeEventListener('click', handleClick);
+  }, [playClick]);
 
   return { playSuccess, playError, enable, disable };
 };
