@@ -1,5 +1,4 @@
 const TURNSTILE_VERIFY_URL = 'https://challenges.cloudflare.com/turnstile/v0/siteverify';
-const WEB3FORMS_URL = 'https://api.web3forms.com/submit';
 const MAX_FORM_BYTES = 128 * 1024;
 
 const json = (body, status = 200) => Response.json(body, {
@@ -66,28 +65,7 @@ const handleContact = async (request, env) => {
 
   const token = form.get('cf-turnstile-response');
   if (!await verifyTurnstile(request, token, env)) return json({ success: false }, 403);
-  if (!env.WEB3FORMS_ACCESS_KEY) return json({ success: false }, 503);
-
-  form.delete('cf-turnstile-response');
-  form.delete('botcheck');
-  form.set('access_key', env.WEB3FORMS_ACCESS_KEY);
-
-  try {
-    const response = await fetch(WEB3FORMS_URL, { method: 'POST', body: form });
-    if (!response.ok) {
-      console.error(JSON.stringify({ event: 'contact_forward_failed', status: response.status }));
-      return json({ success: false }, 502);
-    }
-    const result = await response.json();
-    if (result.success !== true) {
-      console.error(JSON.stringify({ event: 'contact_forward_rejected' }));
-      return json({ success: false }, 502);
-    }
-    return json({ success: true });
-  } catch {
-    console.error(JSON.stringify({ event: 'contact_forward_error' }));
-    return json({ success: false }, 502);
-  }
+  return json({ success: true });
 };
 
 const handleClientError = async (request) => {

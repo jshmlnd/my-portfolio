@@ -4,11 +4,14 @@ import { getTurnstileToken } from '../utils/turnstile';
 import { Send, Mail, User, Briefcase, MessageSquare, CheckCircle } from 'lucide-react';
 
 const TURNSTILE_SITEKEY = '0x4AAAAAAFeCX2XX6gNaahsr';
-const CONTACT_ENDPOINT = import.meta.env.VITE_CONTACT_ENDPOINT || '/api/contact';
+const TURNSTILE_VERIFY_ENDPOINT = '/api/contact';
+const WEB3FORMS_ENDPOINT = 'https://api.web3forms.com/submit';
+const WEB3FORMS_ACCESS_KEY = import.meta.env.VITE_WEB3FORMS_ACCESS_KEY || '';
 
 const Contact = () => {
   const revealRef = useReveal();
   const [status, setStatus] = useState('idle'); // idle | sending | sent | error
+  const [errorDetail, setErrorDetail] = useState('');
   const [turnstileToken, setTurnstileToken] = useState('');
   const turnstileRef = useRef(null);
   const widgetIdRef = useRef(null);
@@ -59,31 +62,55 @@ const Contact = () => {
     e.preventDefault();
     const token = getTurnstileToken(window.turnstile, widgetIdRef.current, turnstileToken);
     if (!token) {
+      setErrorDetail('Please complete the verification check');
       setStatus('error');
       return;
     }
     setStatus('sending');
+    setErrorDetail('');
 
     const form = e.target;
     const formData = new FormData(form);
     formData.set('subject', `New Project Inquiry from ${formData.get('name')}`);
     formData.set('from_name', 'Personal Portfolio Form');
-    formData.set('cf-turnstile-response', token);
 
     try {
-      const response = await fetch(CONTACT_ENDPOINT, {
+      const verification = new FormData();
+      verification.set('cf-turnstile-response', token);
+      const verificationResponse = await fetch(TURNSTILE_VERIFY_ENDPOINT, {
         method: 'POST',
+        body: verification,
+      });
+      if (!verificationResponse.ok) {
+        setErrorDetail('Bot verification failed');
+        setStatus('error');
+        return;
+      }
+      if (!WEB3FORMS_ACCESS_KEY) {
+        setErrorDetail('Web3Forms is not configured for this build');
+        setStatus('error');
+        return;
+      }
+
+      formData.set('access_key', WEB3FORMS_ACCESS_KEY);
+      formData.delete('botcheck');
+      formData.delete('cf-turnstile-response');
+      const response = await fetch(WEB3FORMS_ENDPOINT, {
+        method: 'POST',
+        headers: { Accept: 'application/json' },
         body: formData,
       });
 
-      const data = response.ok ? await response.json() : { success: false };
+      const data = await response.json().catch(() => ({ success: false }));
       if (data.success === true) {
         setStatus('sent');
         form.reset();
       } else {
+        setErrorDetail(data.message || data.body?.message || 'The message could not be delivered');
         setStatus('error');
       }
     } catch {
+      setErrorDetail('The message could not be delivered');
       setStatus('error');
     } finally {
       resetTurnstile();
@@ -242,7 +269,7 @@ const Contact = () => {
 
             {status === 'error' && (
               <div className="mt-4 p-3 rounded-lg bg-red-500/10 border border-red-500/20 text-red-400 text-sm text-center">
-                Something went wrong. Please try again or email me directly at{' '}
+                {errorDetail}. Please try again or email me directly at{' '}
                 <a href="mailto:joshua.malonda11@gmail.com" className="underline hover:text-red-300">
                   joshua.malonda11@gmail.com
                 </a>

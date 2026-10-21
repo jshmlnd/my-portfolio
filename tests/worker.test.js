@@ -64,23 +64,19 @@ test('logs safe Turnstile rejection diagnostics without credentials', async () =
   }
 });
 
-test('forwards a verified contact form without the browser token', async () => {
+test('accepts a verified contact token without proxying the provider request', async () => {
   const originalFetch = globalThis.fetch;
   const requests = [];
   globalThis.fetch = async (request, options) => {
     requests.push({ request, options });
-    return requests.length === 1
-      ? Response.json({ success: true, action: 'contact', hostname: 'jshmlnd.dev' })
-      : Response.json({ success: true });
+    return Response.json({ success: true, action: 'contact', hostname: 'jshmlnd.dev' });
   };
 
   try {
     const response = await worker.fetch(contactRequest(), env);
     assert.equal(response.status, 200);
-    const forwarded = await requests[1].options.body;
-    assert.equal(forwarded.get('access_key'), env.WEB3FORMS_ACCESS_KEY);
-    assert.equal(forwarded.get('cf-turnstile-response'), null);
-    assert.equal(forwarded.get('name'), 'Ada Lovelace');
+    assert.deepEqual(await response.json(), { success: true });
+    assert.equal(requests.length, 1);
   } finally {
     globalThis.fetch = originalFetch;
   }
