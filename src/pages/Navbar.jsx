@@ -1,12 +1,13 @@
-import { ArrowUpRight } from 'lucide-react';
 import { useState, useEffect, useRef, useLayoutEffect } from 'react';
+import { Volume2, VolumeX } from 'lucide-react';
 import { siGithub } from 'simple-icons';
 import { navItems } from './navItems';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faSquareLinkedin } from '@fortawesome/free-brands-svg-icons';
+import { useSoundControls } from '../hooks/useSound';
 
 const Navbar = () => {
-  const [active, setActive] = useState('hero');
+  const [active, setActive] = useState('about');
   const [scrolled, setScrolled] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
   const [hovered, setHovered] = useState(null);
@@ -14,7 +15,7 @@ const Navbar = () => {
   const itemRefs = useRef({});
   const [activeRect, setActiveRect] = useState({ left: 0, width: 0 });
   const [hoverRect, setHoverRect] = useState({ left: 0, width: 0 });
-  const activeRef = useRef('hero');
+  const activeRef = useRef('about');
   const hoveredRef = useRef(null);
   activeRef.current = active;
   hoveredRef.current = hovered;
@@ -22,6 +23,7 @@ const Navbar = () => {
   // stays quiet so the pill glides once, straight to the target (no mid-scroll hops).
   // Counter so overlapping animations don't clear each other's guard.
   const programmaticScroll = useRef(0);
+  const sound = useSoundControls();
 
   useEffect(() => {
     // rAF-throttled + change-gated: setting identical state bails out of the
@@ -290,11 +292,24 @@ const Navbar = () => {
             <span className="text-black font-medium">Hire Me</span> <FontAwesomeIcon icon={faSquareLinkedin} size="lg" style={{color: "rgb(30,144,255)",}} />
           </a>
 
+          <button
+            type="button"
+            onClick={() => sound?.[sound.enabled ? 'disable' : 'enable']()}
+            className="w-9 h-9 rounded-full bg-[#18181b] border border-[#27272a] flex items-center justify-center text-zinc-400 hover:text-white hover:border-[#3f3f46] transition-colors"
+            aria-label={sound?.enabled ? 'Mute interface sounds' : 'Enable interface sounds'}
+            aria-pressed={sound?.enabled || false}
+            title={sound?.enabled ? 'Mute interface sounds' : 'Enable interface sounds'}
+          >
+            {sound?.enabled ? <Volume2 size={15} /> : <VolumeX size={15} />}
+          </button>
+
           {/* Mobile toggle */}
           <button
             onClick={() => setMobileOpen((v) => !v)}
             className="md:hidden w-9 h-9 rounded-full bg-[#18181b] border border-[#27272a] flex items-center justify-center text-zinc-400 hover:text-white transition-colors"
             aria-label="Menu"
+            aria-expanded={mobileOpen}
+            aria-controls="mobile-navigation"
           >
             <span className="space-y-1">
               <span className={`block w-4 h-0.5 bg-current transition-transform ${mobileOpen ? 'translate-y-1.5 rotate-45' : ''}`} />
@@ -307,7 +322,7 @@ const Navbar = () => {
 
       {/* Mobile menu */}
       {mobileOpen && (
-        <div className="md:hidden border-t border-[#232326] bg-[#0f0f10]/95 backdrop-blur-xl animate-slide-down">
+        <div id="mobile-navigation" className="md:hidden border-t border-[#232326] bg-[#0f0f10]/95 backdrop-blur-xl animate-slide-down">
           <div className="px-6 py-4 flex flex-col gap-2">
             {navItems.map(({ label, href, id }) => (
               <a

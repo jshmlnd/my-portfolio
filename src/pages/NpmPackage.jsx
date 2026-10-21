@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import { Copy, Check, ExternalLink, Package, Box, Layers, Cpu, Database, Terminal, FileCode2, Globe, RefreshCw, Clock } from 'lucide-react';
 import { siNpm, siGithub } from 'simple-icons';
 import { useReveal } from '../hooks/useReveal';
+import { reportClientError } from '../utils/reportClientError';
 
 const NPM_API_BASE = 'https://npmjsapi.joshuaklein-malonda.workers.dev';
 const NPM_REGISTRY_PACKAGES = `${NPM_API_BASE}/registry/packages`;
@@ -55,13 +56,15 @@ const NpmPackage = () => {
             const d = await detailRes.json();
             if (d?.data) setDetail(d.data);
           }
-        } catch {
+        } catch (err) {
           // Detail fetch is non-critical — ignore
+          if (err.name !== 'AbortError') reportClientError('npm-package-detail', err);
         }
       }
     } catch (err) {
       if (err.name !== 'AbortError') {
         setError(err.message || 'Failed to fetch packages');
+        reportClientError('npm-packages', err);
       }
     } finally {
       if (!isPoll) setLoading(false);
@@ -112,7 +115,7 @@ const NpmPackage = () => {
         {/* Header */}
         <div className="flex flex-col lg:flex-row lg:items-end justify-between gap-6">
           <div className="space-y-3">
-            <p className="mono-label">03 — Packages</p>
+                <p className="mono-label">04 — Packages</p>
             <h2 className="text-[32px] sm:text-[40px] font-black tracking-[-0.03em] leading-none text-white">
               Install. <span className="text-zinc-500">Configure. </span>
             Deploy.</h2>

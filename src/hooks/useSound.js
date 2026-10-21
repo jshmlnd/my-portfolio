@@ -1,40 +1,50 @@
-import { useCallback, useRef, useEffect } from 'react';
+import { createContext, useCallback, useContext, useRef, useEffect, useState } from 'react';
 
-const AudioContext = window.AudioContext || window.webkitAudioContext;
+const AudioContextClass = typeof window !== 'undefined' ? window.AudioContext || window.webkitAudioContext : null;
 
-// Create AudioContext eagerly on module load (startup)
-// It will be in 'suspended' state until user interaction resumes it
-let audioContext = new AudioContext();
-let masterGain = audioContext.createGain();
-masterGain.gain.value = 0.15;
-masterGain.connect(audioContext.destination);
+let audioContext = null;
+let masterGain = null;
+
+const getAudioContext = () => {
+  if (!AudioContextClass) return null;
+  if (!audioContext) {
+    audioContext = new AudioContextClass();
+    masterGain = audioContext.createGain();
+    masterGain.gain.value = 0.15;
+    masterGain.connect(audioContext.destination);
+  }
+  return audioContext;
+};
 
 const ensureAudioReady = async () => {
-  if (audioContext.state === 'suspended') {
-    await audioContext.resume();
+  const context = getAudioContext();
+  if (!context) return null;
+  if (context.state === 'suspended') {
+    await context.resume();
   }
+  return context;
 };
 
 const playTone = async (frequency, duration, type = 'sine', gainValue = 0.15) => {
-  await ensureAudioReady();
+  const context = await ensureAudioReady();
   // Don't schedule oscillators while context is suspended —
   // currentTime is frozen so they'd expire before playback starts.
-  if (!audioContext || audioContext.state === 'suspended') return;
+  if (!context || context.state === 'suspended' || !masterGain) return;
 
-  const oscillator = audioContext.createOscillator();
-  const gainNode = audioContext.createGain();
+  const oscillator = context.createOscillator();
+  const gainNode = context.createGain();
 
   oscillator.type = type;
   oscillator.frequency.value = frequency;
   oscillator.connect(gainNode);
   gainNode.connect(masterGain);
 
-  gainNode.gain.setValueAtTime(0, audioContext.currentTime);
-  gainNode.gain.linearRampToValueAtTime(gainValue, audioContext.currentTime + 0.01);
-  gainNode.gain.exponentialRampToValueAtTime(0.001, audioContext.currentTime + duration);
+  gainNode.gain.setValueAtTime(0, context.currentTime);
+  gainNode.gain.linearRampToValueAtTime(gainValue, context.currentTime + 0.01);
+  gainNode.gain.exponentialRampToValueAtTime(0.001, context.currentTime + duration);
 
-  oscillator.start(audioContext.currentTime);
-  oscillator.stop(audioContext.currentTime + duration);
+  oscillator.start(context.currentTime);
+  oscillator.stop(context.currentTime + duration);
 };
 
 const playClickSound = async () => {
@@ -55,10 +65,19 @@ const playErrorSound = async () => {
 };
 
 export const useSound = () => {
-  const enabledRef = useRef(true);
+  const [enabled, setEnabled] = useState(() => {
+    return typeof window === 'undefined' || !window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
+  });
+  const enabledRef = useRef(enabled);
 
-  const enable = useCallback(() => { enabledRef.current = true; }, []);
-  const disable = useCallback(() => { enabledRef.current = false; }, []);
+  const enable = useCallback(() => {
+    enabledRef.current = true;
+    setEnabled(true);
+  }, []);
+  const disable = useCallback(() => {
+    enabledRef.current = false;
+    setEnabled(false);
+  }, []);
 
   const playClick = useCallback(() => {
     if (enabledRef.current) playClickSound();
@@ -79,11 +98,7 @@ export const useSound = () => {
     const handleInteraction = async () => {
       if (initialized) return;
       initialized = true;
-      // AudioContext already created on startup, just resume it
-      if (audioContext?.state === 'suspended') {
-        await audioContext.resume();
-      }
-      await playTone(880, 0.08, 'sine', 0.15);
+      if (enabledRef.current) await playTone(880, 0.08, 'sine', 0.15);
       document.removeEventListener('click', handleInteraction);
       document.removeEventListener('keydown', handleInteraction);
     };
@@ -97,11 +112,15 @@ export const useSound = () => {
     };
   }, []);
 
-  return { playClick, playSuccess, playError, enable, disable };
+  return { enabled, playClick, playSuccess, playError, enable, disable };
 };
 
+export const SoundContext = createContext(null);
+
+export const useSoundControls = () => useContext(SoundContext);
+
 export const useSoundProvider = () => {
-  const { playClick, playSuccess, playError, enable, disable } = useSound();
+  const { enabled, playClick, playSuccess, playError, enable, disable } = useSound();
 
   useEffect(() => {
     const handleClick = (e) => {
@@ -114,5 +133,5 @@ export const useSoundProvider = () => {
     return () => document.removeEventListener('click', handleClick);
   }, [playClick]);
 
-  return { playSuccess, playError, enable, disable };
+  return { enabled, playSuccess, playError, enable, disable };
 };

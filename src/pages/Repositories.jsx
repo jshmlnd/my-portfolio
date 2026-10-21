@@ -21,6 +21,7 @@ import {
 import { Braces, Box, Play } from 'lucide-react';
 import { useReveal } from '../hooks/useReveal';
 import JsonPreview from '../components/JsonPreview';
+import { reportClientError } from '../utils/reportClientError';
 
 const README_URL = 'https://raw.githubusercontent.com/jshmlnd/.github/main/profile/README.md';
 const REPOS_API = 'https://githubprofileapi.joshuaklein-malonda.workers.dev/repos';
@@ -117,6 +118,39 @@ const getStackLabel = (Icon, fallback = 'Stack') => {
 
 const getStackForRepo = (repo) => stackByRepo[repo.name] || fallbackStackByLanguage[repo.language] || fallbackStackByLanguage.default;
 
+const caseStudies = [
+  {
+    name: 'UST Legazpi MHSS',
+    repo: 'ust-legazpi-mhss',
+    summary: 'A full-stack mental health support platform built around a focused student experience.',
+    focus: 'Product flow · realtime features',
+    stack: 'React · Node.js · MongoDB · Socket.IO',
+    intent: 'Create a calmer, more focused support experience for students.',
+    build: 'React frontend with Node.js, Express, MongoDB, and Socket.IO behind it.',
+    takeaway: 'Explored how realtime functionality can support a sensitive product without overwhelming the interface.',
+  },
+  {
+    name: 'Ani-Mei',
+    repo: 'ani-mei',
+    summary: 'An anime discovery interface that turns the AniList API into a fast, approachable browsing experience.',
+    focus: 'API integration · interface design',
+    stack: 'React · Tailwind · AniList · Axios',
+    intent: 'Make a large catalog easier to browse than a raw API response.',
+    build: 'React interface powered by AniList data, with Axios handling the API connection.',
+    takeaway: 'Practiced turning external data into clear navigation, useful states, and a focused browsing flow.',
+  },
+  {
+    name: 'MeiShortsAI',
+    repo: 'MeiShortsAI',
+    summary: 'An AI-assisted short-form content project exploring a polished frontend with edge-backed services.',
+    focus: 'Frontend systems · edge services',
+    stack: 'React · Framer · Cloudflare',
+    intent: 'Explore a polished workflow for creating and presenting short-form AI content.',
+    build: 'React and Framer-based interface connected to edge services through Axios and Cloudflare.',
+    takeaway: 'Worked through the boundary between expressive motion, useful product feedback, and fast delivery.',
+  },
+];
+
 const toStackItems = (icons, language) => {
   const components = icons || (language ? [null] : []);
   if (!components.length) return '';
@@ -197,6 +231,7 @@ const Repositories = () => {
     } catch (err) {
       if (err.name !== 'AbortError') {
         setReposError(err.message || 'Failed to fetch');
+        reportClientError('repositories', err);
       }
     } finally {
       if (!isPoll) setReposLoading(false);
@@ -245,7 +280,10 @@ const Repositories = () => {
           return res.text();
         })
         .then((md) => setReadmeContent(md))
-        .catch(() => setReadmeContent('# Error\nFailed to load README.md'))
+        .catch((err) => {
+          reportClientError('repository-readme', err);
+          setReadmeContent('# Error\nFailed to load README.md');
+        })
         .finally(() => setReadmeLoading(false));
     }
   }, [selected, readmeContent]);
@@ -317,7 +355,8 @@ const Repositories = () => {
           setPreviewKind('iframe');
         }
       })
-      .catch(() => {
+      .catch((err) => {
+        if (err.name !== 'AbortError') reportClientError('project-preview', err);
         if (!cancelled) {
           setProbeFail('cors'); // blocked from reading (no CORS headers, offline, HTTP error)
           setPreviewKind('iframe');
@@ -341,13 +380,12 @@ const Repositories = () => {
         {/* Header */}
         <div className="flex flex-col lg:flex-row lg:items-end justify-between gap-6">
           <div className="space-y-3">
-            <p className="mono-label">02 — Projects</p>
+            <p className="mono-label">03 — Selected Work</p>
             <h2 className="text-[32px] sm:text-[40px] font-black tracking-[-0.03em] leading-none text-white">
-              Design. <span className="text-zinc-500">Develop. </span>
-            Deploy.</h2>
+              Work with a <span className="text-zinc-500">point of view.</span></h2>
             <p className="max-w-[560px] text-[14px] leading-6 text-zinc-400">
-              Fetched live from my very own <span className="text-zinc-300 font-mono text-xs">GithubRepositoryAPI</span> — fullstack websites, API's, and mobile apps. Select a
-              repository to inspect the stack and preview the live site.
+              A few projects I can explain beyond the technology list: the problem, the product decisions, and the
+              systems behind the interface. The live repository explorer below stays available for deeper inspection.
             </p>
           </div>
           <div className="hidden sm:flex items-center gap-2 font-mono text-[11px] tracking-wide text-zinc-500">
@@ -364,6 +402,60 @@ const Repositories = () => {
               </span>
             )}
           </div>
+        </div>
+
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+          {caseStudies.map(({ name, repo, summary, focus, stack, intent, build, takeaway }) => (
+            <article key={repo} className="group flex flex-col gap-5 rounded-2xl border border-[#27272a] bg-[#0f0f10] p-5 hover:border-[#3f3f46] hover:bg-[#141416] transition-colors">
+              <div className="flex items-start justify-between gap-3">
+                <div>
+                  <p className="font-mono text-[10px] tracking-widest uppercase text-emerald-500">Case study</p>
+                  <h3 className="mt-2 text-[17px] font-semibold tracking-tight text-white">{name}</h3>
+                </div>
+                <a
+                  href={`https://github.com/jshmlnd/${repo}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  aria-label={`View ${name} on GitHub`}
+                  className="w-8 h-8 rounded-full border border-[#27272a] flex items-center justify-center text-zinc-500 hover:text-white hover:border-[#3f3f46] transition-colors"
+                >
+                  <ExternalLink size={13} />
+                </a>
+              </div>
+              <p className="text-[13px] leading-6 text-zinc-400">{summary}</p>
+              <div className="mt-auto space-y-2 pt-3 border-t border-[#232326]">
+                <p className="font-mono text-[10px] tracking-widest uppercase text-zinc-600">Focus</p>
+                <p className="text-xs text-zinc-300">{focus}</p>
+                <p className="font-mono text-[10px] leading-5 text-zinc-600">{stack}</p>
+              </div>
+              <details className="border-t border-[#232326] pt-3 group/details">
+                <summary className="cursor-pointer list-none flex items-center justify-between gap-3 text-xs font-medium text-zinc-400 hover:text-white transition-colors">
+                  Read the build notes
+                  <span className="font-mono text-[10px] text-zinc-600 group-open/details:rotate-45 transition-transform">+</span>
+                </summary>
+                <dl className="mt-4 space-y-3 text-xs leading-5">
+                  <div>
+                    <dt className="font-mono text-[10px] tracking-widest uppercase text-zinc-600">Intent</dt>
+                    <dd className="mt-1 text-zinc-400">{intent}</dd>
+                  </div>
+                  <div>
+                    <dt className="font-mono text-[10px] tracking-widest uppercase text-zinc-600">Build</dt>
+                    <dd className="mt-1 text-zinc-400">{build}</dd>
+                  </div>
+                  <div>
+                    <dt className="font-mono text-[10px] tracking-widest uppercase text-zinc-600">Takeaway</dt>
+                    <dd className="mt-1 text-zinc-400">{takeaway}</dd>
+                  </div>
+                </dl>
+              </details>
+            </article>
+          ))}
+        </div>
+
+        <div className="flex items-center gap-3 pt-2">
+          <span className="h-px flex-1 bg-[#1f1f23]" />
+          <p className="font-mono text-[10px] tracking-widest uppercase text-zinc-600">Live repository explorer</p>
+          <span className="h-px flex-1 bg-[#1f1f23]" />
         </div>
 
         {/* Mobile sidebar toggle */}
@@ -504,18 +596,20 @@ const Repositories = () => {
                     </div>
                     <p className="text-[13px] leading-6 text-zinc-400 max-w-[720px]">{activeProject.description}</p>
                   </div>
-                  <div className="flex items-center gap-2 shrink-0">
-                    <a
-                      href={activeProject.url}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-full bg-white text-black text-xs font-semibold hover:bg-zinc-100 transition-colors"
-                    >
-                      <Globe size={14} />
-                      Live site
-                      <ExternalLink size={12} className="text-zinc-500" />
-                    </a>
-                  </div>
+                  {activeProject.url && (
+                    <div className="flex items-center gap-2 shrink-0">
+                      <a
+                        href={activeProject.url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-full bg-white text-black text-xs font-semibold hover:bg-zinc-100 transition-colors"
+                      >
+                        <Globe size={14} />
+                        Live site
+                        <ExternalLink size={12} className="text-zinc-500" />
+                      </a>
+                    </div>
+                  )}
                 </div>
 
                 <div className="mt-5 grid sm:grid-cols-2 gap-4">
@@ -611,7 +705,7 @@ const Repositories = () => {
                   <Lock size={12} className="text-emerald-500 shrink-0" />
                   <Globe size={12} className="text-zinc-600 shrink-0 hidden sm:block" />
                   <span className="font-mono text-[12px] text-zinc-300 truncate">
-                    {activeProject ? activeProject.url.replace('https://', '') : 'select a repository to preview'}
+                    {activeProject?.url ? activeProject.url.replace('https://', '') : 'select a repository to preview'}
                   </span>
                   <span className="ml-auto hidden sm:inline-flex items-center gap-1 font-mono text-[10px] tracking-wide uppercase text-zinc-500 shrink-0">
                     <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
@@ -620,7 +714,7 @@ const Repositories = () => {
                 </div>
 
                 <div className="flex items-center gap-1 shrink-0">
-                  {activeProject && (
+                  {activeProject?.url && (
                     <>
                       <button
                         onClick={handleCopy}
@@ -630,7 +724,7 @@ const Repositories = () => {
                         {copied ? <Check size={12} className="text-emerald-500" /> : <Copy size={12} />}
                       </button>
                       <a
-                        href={activeProject.url}
+                        href={activeProject.url || undefined}
                         target="_blank"
                         rel="noopener noreferrer"
                         className="w-7 h-7 rounded-full bg-white text-black flex items-center justify-center hover:bg-zinc-100 transition-colors"
@@ -757,7 +851,7 @@ const Repositories = () => {
                           </button>
                         </div>
                         <p className="font-mono text-[11px] tracking-wide text-zinc-600">
-                          {activeProject.name} · {activeProject.url.replace('https://', '')}
+                          {activeProject.name} · {activeProject.url?.replace('https://', '')}
                         </p>
                       </div>
                     )}

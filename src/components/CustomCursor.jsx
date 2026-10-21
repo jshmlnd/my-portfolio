@@ -8,6 +8,9 @@ const CustomCursor = ({ enabled = true }) => {
       return;
     }
 
+    const canUseCustomCursor = window.matchMedia?.('(pointer: fine) and (prefers-reduced-motion: no-preference)').matches;
+    if (!canUseCustomCursor) return undefined;
+
     document.documentElement.classList.add('cursor-enabled');
 
     return () => {

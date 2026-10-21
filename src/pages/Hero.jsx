@@ -10,7 +10,7 @@ import {
   siMongodb,
 } from 'simple-icons';
 import cv from '../assets/cv/Joshua_Klein_Malonda_Resume.pdf';
-import { Download, MoveRight, ArrowRight } from 'lucide-react';
+import { Download, ArrowRight } from 'lucide-react';
 
 const terminalTitle = 'jshmlnd — zsh — 80×24';
 
@@ -95,8 +95,8 @@ const Hero = () => {
             </div>
 
             <p className="max-w-[560px] text-[15px] leading-7 text-zinc-400 animate-fade-in-up delay-200">
-              I design and ship full-stack web products — from React interfaces and design systems to
-              APIs and databases. I'm all about clean architecture, and codes that last.
+              I build React and Node.js products that turn a clear idea into a dependable web experience — from
+              interface and API design to deployment.
             </p>
 
             <div className="flex flex-wrap gap-3 animate-fade-in-up delay-300">
@@ -124,7 +124,7 @@ const Hero = () => {
                 }}
                 className="inline-flex items-center gap-2 px-6 py-3 rounded-full bg-white text-black text-sm font-semibold hover:bg-zinc-200 transition-colors"
               >
-                View my work
+                View selected work
                 <span className="text-zinc-500"><ArrowRight size={14} strokeWidth={3} /></span>
               </a>
               <a
@@ -151,9 +151,9 @@ const Hero = () => {
             {/* Capability bar */}
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-2 animate-fade-in-up delay-400">
               {[
-                { k: '05+', v: 'Products shipped', sub: 'Full-stack' },
-                { k: '8', v: 'Core technologies', sub: 'JS · TS · React' },
-                { k: '100%', v: 'Reliable', sub: <><span>Designing</span> <ArrowRight size={10} /> <span>Deployment</span></> },
+                { k: 'UI', v: 'Product interfaces', sub: 'React · TypeScript' },
+                { k: 'API', v: 'Full-stack systems', sub: 'Node · Database' },
+                { k: 'PH', v: 'Open to internships', sub: '2027 · Full-stack roles' },
               ].map(({ k, v, sub }) => (
                 <div key={k} className="rounded-2xl border border-[#27272a] bg-[#141416] p-4">
                   <div className="font-mono text-lg font-semibold tracking-tight text-white">{k}</div>
