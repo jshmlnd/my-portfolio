@@ -47,9 +47,54 @@ const playTone = async (frequency, duration, type = 'sine', gainValue = 0.15) =>
   oscillator.stop(context.currentTime + duration);
 };
 
+let noiseBuffer = null;
+const getNoise = (context) => {
+  if (!noiseBuffer) {
+    const length = Math.floor(context.sampleRate * 0.03);
+    noiseBuffer = context.createBuffer(1, length, context.sampleRate);
+    const data = noiseBuffer.getChannelData(0);
+    for (let i = 0; i < length; i++) data[i] = Math.random() * 2 - 1;
+  }
+  return noiseBuffer;
+};
+
+let lastClickAt = -1;
+
+// A soft tactile tick: a few ms of band-passed noise (the "switch") over a short
+// sine that drops in pitch (the "body"). Scheduled on the audio clock, not setTimeout.
 const playClickSound = async () => {
-  await playTone(800, 0.08, 'square', 0.12);
-  setTimeout(() => playTone(600, 0.06, 'square', 0.08), 30);
+  const context = await ensureAudioReady();
+  if (!context || context.state !== 'running' || !masterGain) return;
+
+  const t = context.currentTime + 0.003;
+  if (t - lastClickAt < 0.04) return; // one sound per click even if handlers double-fire
+  lastClickAt = t;
+  const pitch = 1 + (Math.random() - 0.5) * 0.08; // ±4% so repeated clicks don't sound mechanical
+
+  const noise = context.createBufferSource();
+  noise.buffer = getNoise(context);
+  const band = context.createBiquadFilter();
+  band.type = 'bandpass';
+  band.frequency.value = 3800 * pitch;
+  band.Q.value = 1.2;
+  const noiseGain = context.createGain();
+  noiseGain.gain.setValueAtTime(0.35, t);
+  noiseGain.gain.exponentialRampToValueAtTime(0.001, t + 0.018);
+  noise.connect(band).connect(noiseGain).connect(masterGain);
+  noise.start(t);
+  noise.stop(t + 0.03);
+
+  const body = context.createOscillator();
+  body.type = 'sine';
+  body.frequency.setValueAtTime(1500 * pitch, t);
+  body.frequency.exponentialRampToValueAtTime(600 * pitch, t + 0.04);
+  const bodyGain = context.createGain();
+  bodyGain.gain.setValueAtTime(0.0001, t);
+  bodyGain.gain.exponentialRampToValueAtTime(0.5, t + 0.002);
+  bodyGain.gain.exponentialRampToValueAtTime(0.001, t + 0.06);
+  body.connect(bodyGain).connect(masterGain);
+  body.start(t);
+  body.stop(t + 0.07);
 };
 
 
@@ -90,26 +135,6 @@ export const useSound = () => {
 
   const playError = useCallback(() => {
     if (enabledRef.current) playErrorSound();
-  }, []);
-
-  useEffect(() => {
-    let initialized = false;
-
-    const handleInteraction = async () => {
-      if (initialized) return;
-      initialized = true;
-      if (enabledRef.current) await playTone(880, 0.08, 'sine', 0.15);
-      document.removeEventListener('click', handleInteraction);
-      document.removeEventListener('keydown', handleInteraction);
-    };
-    // Only click/keydown for confirmation tone - play functions handle resume themselves
-    document.addEventListener('click', handleInteraction, { once: true, passive: true });
-    document.addEventListener('keydown', handleInteraction, { once: true, passive: true });
-
-    return () => {
-      document.removeEventListener('click', handleInteraction);
-      document.removeEventListener('keydown', handleInteraction);
-    };
   }, []);
 
   return { enabled, playClick, playSuccess, playError, enable, disable };

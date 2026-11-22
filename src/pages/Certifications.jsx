@@ -35,7 +35,7 @@ const Certifications = () => {
               full-stack foundation.
             </p>
           </div>
-          <div className="hidden sm:inline-flex items-center gap-2 rounded-full border border-[#27272a] bg-[#0f0f10] px-3 py-1.5 font-mono text-[11px] tracking-wide text-zinc-500">
+          <div className="hidden sm:inline-flex self-start lg:self-auto items-center gap-2 rounded-full border border-[#27272a] bg-[#0f0f10] px-3 py-1.5 font-mono text-[11px] tracking-wide text-zinc-500">
             <BadgeCheck size={14} className="text-emerald-500" />
             Verified · Credly
           </div>

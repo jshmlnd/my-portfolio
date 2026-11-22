@@ -16,8 +16,15 @@ const DeferredSection = ({ children }) => {
       observer.disconnect();
     }, { rootMargin: '600px 0px' });
 
+    // Fired by in-page nav so a jump to a section further down finds it rendered.
+    const loadNow = () => setReady(true);
+    window.addEventListener('deferred:load-all', loadNow);
+
     observer.observe(sectionRef.current);
-    return () => observer.disconnect();
+    return () => {
+      observer.disconnect();
+      window.removeEventListener('deferred:load-all', loadNow);
+    };
   }, []);
 
   return (

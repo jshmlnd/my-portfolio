@@ -1,903 +1,204 @@
-import { useState, useEffect, useCallback, useRef } from 'react';
-import ReactMarkdown from 'react-markdown';
-import remarkGfm from 'remark-gfm';
-import { FolderGit, Copy, Check, ExternalLink, Globe, Layers, Server, RefreshCw, Lock, Monitor, Clock } from 'lucide-react';
+import { useState } from 'react';
+import { ArrowUpRight, ImageIcon } from 'lucide-react';
 import {
   SiReact,
   SiTailwindcss,
   SiDaisyui,
   SiNodedotjs,
-  SiMongodb,
   SiExpress,
+  SiMongodb,
   SiSocketdotio,
-  SiAxios,
-  SiVercel,
-  SiAnilist,
-  SiFramer,
-  SiCloudinary,
-  SiReactrouter,
+  SiVite,
+  SiTypescript,
+  SiElectron,
+  SiCapacitor,
+  SiSupabase,
   SiCloudflare,
+  SiFramer,
 } from 'react-icons/si';
-import { Braces, Box, Play } from 'lucide-react';
 import { useReveal } from '../hooks/useReveal';
-import JsonPreview from '../components/JsonPreview';
-import { reportClientError } from '../utils/reportClientError';
 
-const README_URL = 'https://raw.githubusercontent.com/jshmlnd/.github/main/profile/README.md';
-const REPOS_API = 'https://githubprofileapi.joshuaklein-malonda.workers.dev/repos';
-
-// Repos that look like JSON APIs get a native dark JSON preview instead of a
-// sandboxed iframe (browsers render raw JSON as an ugly white page).
-const looksLikeJsonApi = (url, name) => {
-  try {
-    const u = new URL(url);
-    return (
-      /api$/i.test(name) || // animeiapi, kdramaapi, GitHubRepositoryAPI…
-      /(^|\.)api[.-]/i.test(u.hostname) || // api.example.com
-      /\/api(\/|$)/i.test(u.pathname) // example.com/api/…
-    );
-  } catch {
-    return false;
-  }
+const TECH = {
+  react: [SiReact, 'React'],
+  ts: [SiTypescript, 'TypeScript'],
+  vite: [SiVite, 'Vite'],
+  tailwind: [SiTailwindcss, 'Tailwind'],
+  daisy: [SiDaisyui, 'DaisyUI'],
+  motion: [SiFramer, 'Motion'],
+  hls: [null, 'HLS.js'],
+  node: [SiNodedotjs, 'Node.js'],
+  express: [SiExpress, 'Express'],
+  mongo: [SiMongodb, 'MongoDB'],
+  socket: [SiSocketdotio, 'Socket.IO'],
+  cloudflare: [SiCloudflare, 'Cloudflare'],
+  electron: [SiElectron, 'Electron'],
+  capacitor: [SiCapacitor, 'Capacitor'],
+  supabase: [SiSupabase, 'Supabase'],
 };
 
-const stackByRepo = {
-  'my-portfolio': {
-    frontend: [SiReact, SiTailwindcss, SiDaisyui],
-  },
-  'ani-mei': {
-    frontend: [SiReact, SiTailwindcss, SiDaisyui],
-    backend: [SiAxios, SiAnilist],
-  },
-  'ust-legazpi-mhss': {
-    frontend: [SiReact, SiTailwindcss, SiDaisyui],
-    backend: [SiNodedotjs, SiMongodb, SiExpress, SiSocketdotio],
-  },
-  'smors-website': {
-    frontend: [SiReact, SiTailwindcss, SiDaisyui, Box, SiFramer, SiReactrouter],
-    backend: [SiNodedotjs, SiExpress, SiMongodb, SiCloudinary],
-  },
-  'MeiShortsAI': {
-    frontend: [SiReact, SiTailwindcss, SiDaisyui, Box, SiFramer, Play],
-    backend: [SiAxios, SiCloudflare],
-  },
-  'zjkm666-scraperapi': {
-    frontend: [SiNodedotjs],
-    backend: [SiExpress],
-  },
+// Screenshots live in public/projects/. Drop a file there and set `image` to show it.
+const PROJECTS = {
+  institutional: [
+    {
+      name: 'SafeSpace',
+      description: 'Anonymous mental health support for UST Legazpi students: chat or book a counselor.',
+      href: 'https://ust-legazpi-mhss-bn96.onrender.com/',
+      image: '/projects/safespace.png',
+      stack: ['react', 'tailwind', 'node', 'express', 'mongo', 'socket'],
+    },
+  ],
+  personal: [
+    {
+      name: 'MeiDrama',
+      description: 'K-drama streaming with curated picks, genres and a personal list.',
+      href: 'http://meidrama.steffijimei.me',
+      image: '/projects/meidrama.png',
+      stack: ['react', 'vite', 'tailwind', 'hls'],
+    },
+    {
+      name: 'Animei',
+      description: 'Anime to watch and manhwa to read in one place, no account needed.',
+      href: 'https://animei.steffijimei.me/',
+      image: '/projects/animei.png',
+      stack: ['react', 'vite', 'tailwind', 'daisy', 'hls', 'cloudflare'],
+    },
+    {
+      name: 'ID Photo Studio',
+      description: 'Print-ready 1×1 and 2×2 inch ID photos, made on your device.',
+      href: 'https://id-studio.zjkm.tech',
+      image: '/projects/idstudio.png',
+      stack: ['react', 'ts', 'vite', 'tailwind', 'motion'],
+    },
+    {
+      name: 'zjkm-ui',
+      description: 'Animated React components, one file each, yours to edit.',
+      href: 'https://ui.zjkm.tech',
+      image: '/projects/zjkmui.png',
+      stack: ['react', 'ts'],
+    },
+    {
+      name: 'Calify',
+      description: 'A free music player for your own files on Windows and Android, with synced lyrics.',
+      href: 'https://calify.zjkm.tech',
+      image: '/projects/calify.png',
+      stack: ['react', 'electron', 'capacitor', 'supabase'],
+    },
+    {
+      name: 'Meiverse',
+      description: 'A 3D isometric slice-of-life game with a social hub and minigames.',
+      comingSoon: true,
+    },
+  ],
 };
 
-const fallbackStackByLanguage = {
-  JavaScript: {
-    frontend: [SiNodedotjs],
-    backend: [SiExpress],
-  },
-  HTML: {
-    frontend: [Globe],
-    backend: [Server],
-  },
-  default: {
-    frontend: [FolderGit],
-    backend: [Server],
-  },
-};
-
-// Map component *references* to labels — immune to bundler minification.
-const ICON_LABEL_MAP = new Map([
-  [SiReact, 'React'],
-  [SiTailwindcss, 'Tailwind'],
-  [SiDaisyui, 'DaisyUI'],
-  [SiNodedotjs, 'Node.js'],
-  [SiMongodb, 'MongoDB'],
-  [SiExpress, 'Express'],
-  [SiSocketdotio, 'Socket.IO'],
-  [SiAxios, 'Axios'],
-  [SiVercel, 'Vercel'],
-  [SiAnilist, 'AniList'],
-  [SiFramer, 'Framer'],
-  [SiCloudinary, 'Cloudinary'],
-  [SiReactrouter, 'React Router'],
-  [SiCloudflare, 'Cloudflare'],
-  [Box, 'Box'],
-  [Play, 'Play'],
-  [Globe, 'Web'],
-  [FolderGit, 'Git'],
-  [Server, 'Server'],
-]);
-
-const getStackLabel = (Icon, fallback = 'Stack') => {
-  if (!Icon) return fallback;
-  if (ICON_LABEL_MAP.has(Icon)) return ICON_LABEL_MAP.get(Icon);
-
-  // Fallback: try displayName / name then derive a human label
-  const name = Icon.displayName || Icon.name || '';
-  if (!name || name.length <= 3) return fallback;
-
-  return name.replace(/^Si/, '').replace(/([a-z0-9])([A-Z])/g, '$1 $2');
-};
-
-const getStackForRepo = (repo) => stackByRepo[repo.name] || fallbackStackByLanguage[repo.language] || fallbackStackByLanguage.default;
-
-const caseStudies = [
-  {
-    name: 'UST Legazpi MHSS',
-    repo: 'ust-legazpi-mhss',
-    summary: 'A full-stack mental health support platform built around a focused student experience.',
-    focus: 'Product flow · realtime features',
-    stack: 'React · Node.js · MongoDB · Socket.IO',
-    intent: 'Create a calmer, more focused support experience for students.',
-    build: 'React frontend with Node.js, Express, MongoDB, and Socket.IO behind it.',
-    takeaway: 'Explored how realtime functionality can support a sensitive product without overwhelming the interface.',
-  },
-  {
-    name: 'Ani-Mei',
-    repo: 'ani-mei',
-    summary: 'An anime discovery interface that turns the AniList API into a fast, approachable browsing experience.',
-    focus: 'API integration · interface design',
-    stack: 'React · Tailwind · AniList · Axios',
-    intent: 'Make a large catalog easier to browse than a raw API response.',
-    build: 'React interface powered by AniList data, with Axios handling the API connection.',
-    takeaway: 'Practiced turning external data into clear navigation, useful states, and a focused browsing flow.',
-  },
-  {
-    name: 'MeiShortsAI',
-    repo: 'MeiShortsAI',
-    summary: 'An AI-assisted short-form content project exploring a polished frontend with edge-backed services.',
-    focus: 'Frontend systems · edge services',
-    stack: 'React · Framer · Cloudflare',
-    intent: 'Explore a polished workflow for creating and presenting short-form AI content.',
-    build: 'React and Framer-based interface connected to edge services through Axios and Cloudflare.',
-    takeaway: 'Worked through the boundary between expressive motion, useful product feedback, and fast delivery.',
-  },
+const TABS = [
+  ['institutional', 'Institutional'],
+  ['personal', 'Personal'],
 ];
 
-const toStackItems = (icons, language) => {
-  const components = icons || (language ? [null] : []);
-  if (!components.length) return '';
-  return components.map((Icon, index) => ({
-    icon: Icon ? <Icon size="16" /> : <span className="w-2 h-2 rounded-full bg-zinc-500" />,
-    label: Icon ? getStackLabel(Icon, language || 'Stack') : language,
-    key: `${language || 'stack'}-${index}`,
-  }));
+const hatch = 'bg-[repeating-linear-gradient(135deg,#18181b_0_1px,transparent_1px_14px)]';
+
+const ProjectCard = ({ name, description, href, image, stack = [], comingSoon }) => {
+  const Tag = href ? 'a' : 'div';
+  return (
+    <Tag
+      {...(href && { href, target: '_blank', rel: 'noopener noreferrer' })}
+      className="group flex flex-col bg-[#0f0f10] hover:bg-[#141416] transition-colors focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-white"
+    >
+      <div className="relative aspect-[16/10] overflow-hidden border-b border-[#232326]">
+        {image ? (
+          <img
+            src={image}
+            alt={`${name} home screen`}
+            loading="lazy"
+            className="w-full h-full object-cover object-top transition-transform duration-500 group-hover:scale-[1.03]"
+          />
+        ) : (
+          <div className={`w-full h-full flex flex-col items-center justify-center gap-2 text-zinc-400 ${hatch}`}>
+            <ImageIcon size={22} strokeWidth={1.5} />
+            <span className="text-[13px]">{comingSoon ? 'Coming soon' : 'Preview soon'}</span>
+          </div>
+        )}
+      </div>
+      <div className="flex flex-col gap-2 p-5 flex-1">
+        <div className="flex items-start justify-between gap-3">
+          <h3 className="text-[17px] font-semibold tracking-tight text-white">{name}</h3>
+          {href && (
+            <ArrowUpRight
+              size={16}
+              className="shrink-0 mt-0.5 text-zinc-500 transition-transform group-hover:text-white group-hover:-translate-y-0.5 group-hover:translate-x-0.5"
+            />
+          )}
+        </div>
+        <p className="text-[14px] leading-6 text-zinc-400">{description}</p>
+        {stack.length > 0 && (
+          <ul className="mt-auto pt-3 flex flex-wrap gap-1.5" aria-label={`${name} tech stack`}>
+            {stack.map((key) => {
+              const [Icon, label] = TECH[key];
+              return (
+                <li
+                  key={key}
+                  className="inline-flex items-center gap-1.5 px-2 py-1 rounded-md bg-[#18181b] border border-[#27272a] font-mono text-[11px] text-zinc-400"
+                >
+                  {Icon && <Icon size={11} className="text-zinc-500" aria-hidden="true" />}
+                  {label}
+                </li>
+              );
+            })}
+          </ul>
+        )}
+      </div>
+    </Tag>
+  );
 };
 
-const LoadingSkeleton = () => (
-  <div className="flex flex-col gap-3 animate-pulse p-4">
-    <div className="h-5 bg-[#232326] rounded w-3/4" />
-    <div className="h-3 bg-[#232326] rounded w-1/4" />
-    <div className="flex gap-3 mt-2">
-      <div className="h-3 bg-[#232326] rounded w-1/3" />
-      <div className="h-3 bg-[#232326] rounded w-1/4" />
-    </div>
-    <div className="h-3 bg-[#232326] rounded w-full mt-2" />
-    <div className="h-3 bg-[#232326] rounded w-5/6" />
-  </div>
-);
+// Hatched cells that close the last grid row so it never shows a bare gap.
+const Fillers = ({ count, cols, className }) =>
+  Array.from({ length: (cols - (count % cols)) % cols }, (_, i) => (
+    <div key={`${cols}-${i}`} aria-hidden="true" className={`bg-[#0f0f10] ${hatch} ${className}`} />
+  ));
 
 const Repositories = () => {
-  const [selected, setSelected] = useState('');
-  const [readmeContent, setReadmeContent] = useState('');
-  const [readmeLoading, setReadmeLoading] = useState(false);
-  const [copied, setCopied] = useState(false);
-  const [frameLoading, setFrameLoading] = useState(true);
-  const [frameError, setFrameError] = useState(false);
-  const [frameKey, setFrameKey] = useState(0);
-  const [previewKind, setPreviewKind] = useState('empty'); // 'empty' | 'probe' | 'json' | 'iframe'
-  const [jsonPayload, setJsonPayload] = useState(null); // { parsed, raw }
-  const [probeFail, setProbeFail] = useState(null); // 'cors' (unreadable) | 'notjson' (HTML response)
-  const [repos, setRepos] = useState([]);
-  const [reposLoading, setReposLoading] = useState(true);
-  const [reposError, setReposError] = useState(null);
-  const [lastFetched, setLastFetched] = useState(null);
-  const [isRefreshing, setIsRefreshing] = useState(false);
-  const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [tab, setTab] = useState('personal');
   const revealRef = useReveal();
-  const abortRef = useRef(null);
-  const intervalRef = useRef(null);
-  const POLL_INTERVAL = 10_000; // 10 seconds
-
-  const handleCopy = () => {
-    const text = activeProject?.url || activeProject?.name || '';
-    if (!text) return;
-    navigator.clipboard.writeText(text);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
-  };
-
-  // Fetch repositories from Cloudflare Worker API
-  const fetchRepos = useCallback(async (isPoll = false) => {
-    // Cancel any in-flight request
-    if (abortRef.current) abortRef.current.abort();
-    const controller = new AbortController();
-    abortRef.current = controller;
-
-    if (!isPoll) setReposLoading(true);
-    setReposError(null);
-
-    try {
-      const res = await fetch(REPOS_API, { signal: controller.signal });
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      const json = await res.json();
-      const data = Array.isArray(json.data) ? json.data : Array.isArray(json) ? json : [];
-      setRepos(data);
-      setLastFetched(new Date());
-      // auto-select first enriched repo if current selection not in list
-      setSelected((prev) => {
-        if (data.length && !data.find((r) => r.name === prev)) {
-          return data[0] ? data[0].name : prev;
-        }
-        return prev;
-      });
-    } catch (err) {
-      if (err.name !== 'AbortError') {
-        setReposError(err.message || 'Failed to fetch');
-        reportClientError('repositories', err);
-      }
-    } finally {
-      if (!isPoll) setReposLoading(false);
-      setIsRefreshing(false);
-    }
-  }, []);
-
-  // Initial fetch + polling
-  useEffect(() => {
-    fetchRepos();
-    intervalRef.current = setInterval(() => fetchRepos(true), POLL_INTERVAL);
-    return () => {
-      clearInterval(intervalRef.current);
-      if (abortRef.current) abortRef.current.abort();
-    };
-  }, [fetchRepos]);
-
-  const handleManualRefresh = () => {
-    setIsRefreshing(true);
-    fetchRepos();
-  };
-
-  const activeRepo = repos.find((r) => r.name === selected) || null;
-  const activeStack = activeRepo ? getStackForRepo(activeRepo) : null;
-  const activeProject = activeRepo
-    ? {
-        ...activeStack,
-        name: activeRepo.name,
-        role: activeRepo.language ? `${activeRepo.language} · ${activeRepo.visibility}` : activeRepo.visibility,
-        url: activeRepo.website || activeRepo.absoluteUrl,
-        year: activeRepo.updated ? new Date(activeRepo.updated).getFullYear().toString() : '',
-        highlight: activeRepo.description ? activeRepo.description.slice(0, 48) : activeRepo.language || 'Repository',
-        frontend: toStackItems(activeStack.frontend, activeRepo.language),
-        backend: toStackItems(activeStack.backend),
-        description: activeRepo.description,
-      }
-    : null;
-  const apiLike = activeProject?.url ? looksLikeJsonApi(activeProject.url, activeProject.name) : false;
-
-  useEffect(() => {
-    if (selected === 'readme' && !readmeContent) {
-      setReadmeLoading(true);
-      fetch(README_URL)
-        .then((res) => {
-          if (!res.ok) throw new Error('Failed to fetch');
-          return res.text();
-        })
-        .then((md) => setReadmeContent(md))
-        .catch((err) => {
-          reportClientError('repository-readme', err);
-          setReadmeContent('# Error\nFailed to load README.md');
-        })
-        .finally(() => setReadmeLoading(false));
-    }
-  }, [selected, readmeContent]);
-
-  // Reset iframe state when switching projects
-  useEffect(() => {
-    setFrameLoading(true);
-    setFrameError(false);
-    // auto-detect blocked iframe after 6s (X-Frame-Options)
-    const t = setTimeout(() => {
-      // if still loading, assume blocked and show fallback
-      setFrameLoading((prev) => {
-        if (prev) setFrameError(true);
-        return false;
-      });
-    }, 6000);
-    return () => clearTimeout(t);
-  }, [selected, frameKey]);
-
-  const handleRefresh = () => {
-    setFrameLoading(true);
-    setFrameError(false);
-    setFrameKey((k) => k + 1);
-  };
-
-  // JSON API probe — for API-like repos, fetch the URL and render the JSON in
-  // the dark viewer; anything else (HTML, CORS-blocked, non-JSON) falls back
-  // to the sandboxed iframe exactly as before.
-  useEffect(() => {
-    if (selected === 'readme' || !activeProject?.url) {
-      setPreviewKind('empty');
-      setJsonPayload(null);
-      setProbeFail(null);
-      return;
-    }
-    if (!looksLikeJsonApi(activeProject.url, activeProject.name)) {
-      setPreviewKind('iframe');
-      setJsonPayload(null);
-      setProbeFail(null);
-      return;
-    }
-    let cancelled = false;
-    const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 5000);
-    setPreviewKind('probe');
-    setJsonPayload(null);
-    setProbeFail(null);
-    setFrameLoading(true);
-    setFrameError(false);
-    fetch(activeProject.url, { signal: controller.signal, headers: { Accept: 'application/json' } })
-      .then((res) => {
-        if (!res.ok) throw new Error(`HTTP ${res.status}`);
-        return res.text();
-      })
-      .then((text) => {
-        if (cancelled) return;
-        let parsed = null;
-        try {
-          parsed = JSON.parse(text);
-        } catch {
-          parsed = null;
-        }
-        if (parsed !== null && typeof parsed === 'object') {
-          setJsonPayload({ parsed, raw: text });
-          setPreviewKind('json');
-          setFrameLoading(false);
-        } else {
-          setProbeFail('notjson'); // readable but HTML/text — it's a site, use the iframe
-          setPreviewKind('iframe');
-        }
-      })
-      .catch((err) => {
-        if (err.name !== 'AbortError') reportClientError('project-preview', err);
-        if (!cancelled) {
-          setProbeFail('cors'); // blocked from reading (no CORS headers, offline, HTTP error)
-          setPreviewKind('iframe');
-        }
-      })
-      .finally(() => clearTimeout(timeout));
-    return () => {
-      cancelled = true;
-      controller.abort();
-      clearTimeout(timeout);
-    };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selected, activeProject?.url, activeProject?.name, frameKey]);
-
-  // Repository list comes exclusively from the live API.
-  const sidebarItems = repos;
+  const items = PROJECTS[tab];
 
   return (
     <section id="projects" className="bg-[#09090b] border-t border-[#1f1f23] px-6 py-16 lg:py-20">
       <div className="max-w-[1160px] mx-auto flex flex-col gap-10 reveal" ref={revealRef}>
-        {/* Header */}
         <div className="flex flex-col lg:flex-row lg:items-end justify-between gap-6">
-          <div className="space-y-3">
-            <p className="mono-label">03 — Selected Work</p>
-            <h2 className="text-[32px] sm:text-[40px] font-black tracking-[-0.03em] leading-none text-white">
-              Work with a <span className="text-zinc-500">point of view.</span></h2>
-            <p className="max-w-[560px] text-[14px] leading-6 text-zinc-400">
-              A few projects I can explain beyond the technology list: the problem, the product decisions, and the
-              systems behind the interface. The live repository explorer below stays available for deeper inspection.
-            </p>
-          </div>
-          <div className="hidden sm:flex items-center gap-2 font-mono text-[11px] tracking-wide text-zinc-500">
-            <span className={`w-2 h-2 rounded-full ${reposError ? 'bg-red-500' : 'bg-emerald-500 animate-pulse'}`} />
-            {reposLoading ? 'Loading…' : reposError ? 'Offline · fallback' : (
-              <span className="flex items-center gap-1.5">
-                {repos.length} Repositories 
-                {lastFetched && (
-                  <span className="flex items-center gap-1 text-zinc-600">
-                    <Clock size={12} />
-                    {lastFetched.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
-                  </span>
-                )}
-              </span>
-            )}
-          </div>
+        <div className="space-y-3">
+          <p className="mono-label">03 — Projects</p>
+          <h2 className="text-[32px] sm:text-[40px] font-black tracking-[-0.03em] leading-none text-white">Shipped <span className="text-zinc-500">work</span></h2>
+          <p className="max-w-[560px] text-[14px] leading-6 text-zinc-400">Apps, games and websites built by jshmlnd.</p>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-          {caseStudies.map(({ name, repo, summary, focus, stack, intent, build, takeaway }) => (
-            <article key={repo} className="group flex flex-col gap-5 rounded-2xl border border-[#27272a] bg-[#0f0f10] p-5 hover:border-[#3f3f46] hover:bg-[#141416] transition-colors">
-              <div className="flex items-start justify-between gap-3">
-                <div>
-                  <p className="font-mono text-[10px] tracking-widest uppercase text-emerald-500">Case study</p>
-                  <h3 className="mt-2 text-[17px] font-semibold tracking-tight text-white">{name}</h3>
-                </div>
-                <a
-                  href={`https://github.com/jshmlnd/${repo}`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  aria-label={`View ${name} on GitHub`}
-                  className="w-8 h-8 rounded-full border border-[#27272a] flex items-center justify-center text-zinc-500 hover:text-white hover:border-[#3f3f46] transition-colors"
-                >
-                  <ExternalLink size={13} />
-                </a>
-              </div>
-              <p className="text-[13px] leading-6 text-zinc-400">{summary}</p>
-              <div className="mt-auto space-y-2 pt-3 border-t border-[#232326]">
-                <p className="font-mono text-[10px] tracking-widest uppercase text-zinc-600">Focus</p>
-                <p className="text-xs text-zinc-300">{focus}</p>
-                <p className="font-mono text-[10px] leading-5 text-zinc-600">{stack}</p>
-              </div>
-              <details className="border-t border-[#232326] pt-3 group/details">
-                <summary className="cursor-pointer list-none flex items-center justify-between gap-3 text-xs font-medium text-zinc-400 hover:text-white transition-colors">
-                  Read the build notes
-                  <span className="font-mono text-[10px] text-zinc-600 group-open/details:rotate-45 transition-transform">+</span>
-                </summary>
-                <dl className="mt-4 space-y-3 text-xs leading-5">
-                  <div>
-                    <dt className="font-mono text-[10px] tracking-widest uppercase text-zinc-600">Intent</dt>
-                    <dd className="mt-1 text-zinc-400">{intent}</dd>
-                  </div>
-                  <div>
-                    <dt className="font-mono text-[10px] tracking-widest uppercase text-zinc-600">Build</dt>
-                    <dd className="mt-1 text-zinc-400">{build}</dd>
-                  </div>
-                  <div>
-                    <dt className="font-mono text-[10px] tracking-widest uppercase text-zinc-600">Takeaway</dt>
-                    <dd className="mt-1 text-zinc-400">{takeaway}</dd>
-                  </div>
-                </dl>
-              </details>
-            </article>
+        <div role="tablist" aria-label="Project type" className="self-start lg:self-auto inline-flex p-1 rounded-full bg-[#141416] border border-[#27272a]">
+          {TABS.map(([key, label]) => (
+            <button
+              key={key}
+              role="tab"
+              aria-selected={tab === key}
+              onClick={() => setTab(key)}
+              className={`px-4 py-1.5 rounded-full text-[14px] font-medium transition-colors ${
+                tab === key ? 'bg-[#27272a] text-white shadow-sm' : 'text-zinc-400 hover:text-white'
+              }`}
+            >
+              {label}
+            </button>
           ))}
         </div>
-
-        <div className="flex items-center gap-3 pt-2">
-          <span className="h-px flex-1 bg-[#1f1f23]" />
-          <p className="font-mono text-[10px] tracking-widest uppercase text-zinc-600">Live repository explorer</p>
-          <span className="h-px flex-1 bg-[#1f1f23]" />
         </div>
 
-        {/* Mobile sidebar toggle */}
-        <button
-          onClick={() => setSidebarOpen((v) => !v)}
-          className="lg:hidden w-full flex items-center justify-between px-4 py-3 rounded-xl border border-[#27272a] bg-[#0f0f10] text-zinc-300 hover:bg-[#141416] transition-colors"
+        <div
+          role="tabpanel"
+          className="w-full grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-px bg-[#27272a] border border-[#27272a] rounded-2xl overflow-hidden"
         >
-          <div className="flex items-center gap-2">
-            <FolderGit size={14} className="text-zinc-500" />
-            <span className="font-mono text-[11px] tracking-widest uppercase font-semibold">
-              Repositories
-            </span>
-            <span className="font-mono text-[10px] px-1.5 py-0.5 rounded bg-[#1a1a1e] border border-[#27272a] text-zinc-500">
-              {sidebarItems.length}
-            </span>
-          </div>
-          <svg
-            viewBox="0 0 24 24"
-            width="16"
-            height="16"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2"
-            className={`text-zinc-500 transition-transform ${sidebarOpen ? 'rotate-180' : ''}`}
-          >
-            <path d="M6 9l6 6 6-6" />
-          </svg>
-        </button>
-
-        <div className="grid lg:grid-cols-[300px_1fr] gap-6 items-start">
-          {/* Sidebar - Repositories (fetched live) */}
-          <aside className={`rounded-2xl border border-[#27272a] bg-[#0f0f10] overflow-hidden ${sidebarOpen ? 'block' : 'hidden lg:block'}`}>
-            <div className="px-4 py-3 border-b border-[#232326] flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <FolderGit size={14} className="text-zinc-500" />
-                <span className="font-mono text-[11px] tracking-widest uppercase font-semibold text-zinc-300">
-                  Repositories
-                </span>
-                <span className="font-mono text-[10px] px-1.5 py-0.5 rounded bg-[#1a1a1e] border border-[#27272a] text-zinc-500">
-                  {sidebarItems.length}
-                </span>
-              </div>
-              <button
-                onClick={handleManualRefresh}
-                disabled={reposLoading}
-                className="w-6 h-6 rounded-md flex items-center justify-center text-zinc-600 hover:text-zinc-300 hover:bg-[#1a1a1e] transition-colors disabled:opacity-40"
-                title="Refresh repositories"
-              >
-                <RefreshCw size={13} className={isRefreshing ? 'animate-spin' : ''} />
-              </button>
-            </div>
-
-            <div className="p-2">
-              <div className="px-2 py-2 flex items-center justify-between">
-                <p className="font-mono text-[10px] tracking-widest uppercase text-zinc-600">jshmlnd</p>
-                {(reposLoading || isRefreshing) && <span className="w-3 h-3 rounded-full border-2 border-zinc-700 border-t-white animate-spin" />}
-              </div>
-              {reposLoading ? (
-                <div className="space-y-2 p-2">
-                  {[1, 2, 3, 4, 5].map((i) => (
-                    <div key={i} className="h-[52px] rounded-xl bg-[#141416] border border-[#232326] animate-pulse" />
-                  ))}
-                </div>
-              ) : reposError ? (
-                <div className="mx-2 p-3 rounded-xl bg-amber-500/10 border border-amber-500/20 text-amber-200">
-                  <p className="font-mono text-[11px]">Failed to load: {reposError}</p>
-                  <div className="flex items-center gap-2 mt-2">
-                    <button
-                      onClick={handleManualRefresh}
-                      className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-amber-500/20 border border-amber-500/30 font-mono text-[11px] text-amber-200 hover:bg-amber-500/30 transition-colors"
-                    >
-                      <RefreshCw size={10} className={isRefreshing ? 'animate-spin' : ''} /> Retry
-                    </button>
-                    <span className="text-[11px] text-amber-200/50">No local repositories configured.</span>
-                  </div>
-                </div>
-              ) : null}
-              {!reposLoading && (
-                <ul className="space-y-1">
-                  {sidebarItems.map((repo) => {
-                    const isActive = selected === repo.name;
-                    const subtitle = `${repo.language || '—'} · ${repo.updated ? new Date(repo.updated).toLocaleDateString() : ''}`;
-                    return (
-                      <li key={repo.name}>
-                        <button
-                          onClick={() => setSelected(repo.name)}
-                          className={`w-full text-left group flex items-center gap-3 px-3 py-2.5 rounded-xl border transition-all duration-200 ${
-                            isActive ? 'bg-white text-black border-white shadow-sm' : 'bg-[#141416] border-transparent hover:bg-[#1a1a1e] hover:border-[#27272a] text-zinc-300'
-                          }`}
-                        >
-                          <span
-                            className={`w-7 h-7 rounded-lg flex items-center justify-center shrink-0 border transition-colors ${
-                              isActive ? 'bg-black text-white border-black' : 'bg-[#0f0f10] border-[#27272a] text-zinc-500 group-hover:text-zinc-300'
-                            }`}
-                          >
-                            <FolderGit size={14} />
-                          </span>
-                          <span className="flex-1 min-w-0">
-                            <span className={`block font-mono text-[12px] font-medium truncate ${isActive ? 'text-black' : 'text-zinc-200'}`}>
-                              jshmlnd/{repo.name}
-                            </span>
-                            <span className={`block text-[11px] truncate ${isActive ? 'text-zinc-600' : 'text-zinc-500'}`}>{subtitle}</span>
-                          </span>
-                          {isActive ? (
-                            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 shrink-0" />
-                          ) : repo.language ? (
-                            <span className="w-2 h-2 rounded-full shrink-0" style={{ background: repo.languageColor?.match(/#[0-9a-fA-F]{3,6}/)?.[0] || '#71717a' }} />
-                          ) : null}
-                        </button>
-                      </li>
-                    );
-                  })}
-                </ul>
-              )}
-
-              <div className="mt-3 p-3 rounded-xl bg-[#141416] border border-[#232326]">
-                <p className="font-mono text-[11px] tracking-wide text-zinc-400">Terminal hint</p>
-                <p className="font-mono text-[11px] text-zinc-500 mt-1">
-                  <span className="text-zinc-300">$</span> select --repo to preview →
-                </p>
-              </div>
-            </div>
-          </aside>
-
-          {/* Main */}
-          <div className="flex flex-col gap-6 min-w-0">
-            {/* Project meta card */}
-            {activeProject && (
-              <div className="rounded-2xl border border-[#27272a] bg-[#0f0f10] p-5 sm:p-6 animate-fade-in">
-                <div className="flex flex-wrap items-start justify-between gap-4">
-                  <div className="space-y-2">
-                    <div className="flex flex-wrap items-center gap-2">
-                      <h3 className="text-[18px] sm:text-[20px] font-semibold tracking-tight text-white">{activeProject.name}</h3>
-                      <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-[#18181b] border border-[#27272a] font-mono text-[11px] tracking-wide text-zinc-400">
-                        <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
-                        {activeProject.role}
-                      </span>
-                    </div>
-                    <p className="text-[13px] leading-6 text-zinc-400 max-w-[720px]">{activeProject.description}</p>
-                  </div>
-                  {activeProject.url && (
-                    <div className="flex items-center gap-2 shrink-0">
-                      <a
-                        href={activeProject.url}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-full bg-white text-black text-xs font-semibold hover:bg-zinc-100 transition-colors"
-                      >
-                        <Globe size={14} />
-                        Live site
-                        <ExternalLink size={12} className="text-zinc-500" />
-                      </a>
-                    </div>
-                  )}
-                </div>
-
-                <div className="mt-5 grid sm:grid-cols-2 gap-4">
-                  {activeProject.frontend && (
-                    <div className="rounded-xl border border-[#232326] bg-[#141416] p-3.5">
-                      <div className="flex items-center gap-2 mb-2.5">
-                        <Layers size={12} className="text-zinc-500" />
-                        <span className="font-mono text-[11px] tracking-widest uppercase text-zinc-500">Frontend</span>
-                      </div>
-                      <div className="flex flex-wrap gap-1.5">
-                        {activeProject.frontend.map(({ icon, label }) => (
-                          <span
-                            key={label}
-                            className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-full bg-[#0f0f10] border border-[#27272a] text-zinc-300 text-xs font-medium"
-                          >
-                            <span className="text-zinc-500">{icon}</span>
-                            {label}
-                          </span>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-                  {activeProject.backend ? (
-                    <div className="rounded-xl border border-[#232326] bg-[#141416] p-3.5">
-                      <div className="flex items-center gap-2 mb-2.5">
-                        <Server size={12} className="text-zinc-500" />
-                        <span className="font-mono text-[11px] tracking-widest uppercase text-zinc-500">Backend / Infra</span>
-                      </div>
-                      <div className="flex flex-wrap gap-1.5">
-                        {activeProject.backend.map(({ icon, label }) => (
-                          <span
-                            key={label}
-                            className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-full bg-[#0f0f10] border border-[#27272a] text-zinc-300 text-xs font-medium"
-                          >
-                            <span className="text-zinc-500">{icon}</span>
-                            {label}
-                          </span>
-                        ))}
-                      </div>
-                    </div>
-                  ) : (
-                    <div className="rounded-xl border border-dashed border-[#27272a] bg-transparent p-3.5 flex items-center gap-2 text-zinc-500">
-                      <Server size={12} />
-                      <span className="font-mono text-xs">Frontend-only deployment</span>
-                    </div>
-                  )}
-                </div>
-                </div>
-              )}
-
-            {/* Mockup Web Window — live repository preview — responsive across viewports */}
-            <div className="rounded-[20px] border border-[#27272a] bg-[#0f0f10] overflow-hidden flex flex-col w-full shadow-[0_16px_48px_rgba(0,0,0,0.45),0_0_0_1px_rgba(255,255,255,0.03)_inset]">
-              {/* Window chrome — tabs + controls */}
-              <div className="flex items-center gap-3 px-4 py-3 border-b border-[#232326] bg-[#141416] shrink-0">
-                <div className="flex items-center gap-1.5 shrink-0">
-                  <span className="w-3 h-3 rounded-full bg-[#ff5f57] border border-black/10" />
-                  <span className="w-3 h-3 rounded-full bg-[#ffbd2e] border border-black/10" />
-                  <span className="w-3 h-3 rounded-full bg-[#28c840] border border-black/10" />
-                </div>
-                {/* Tab */}
-                <div className="hidden sm:flex items-center gap-2 -mb-3 self-stretch">
-                  <div className="flex items-center gap-2 px-3 py-1.5 rounded-t-xl bg-[#0f0f10] border border-[#27272a] border-b-transparent text-xs font-medium text-zinc-300 max-w-[220px]">
-                    <Monitor size={12} className="text-zinc-500 shrink-0" />
-                    <span className="truncate">{activeProject ? activeProject.name : 'Preview'}</span>
-                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 shrink-0" />
-                  </div>
-                  <div className="w-px h-4 bg-[#27272a] ml-1" />
-                </div>
-                <div className="ml-auto hidden lg:flex items-center gap-1.5 font-mono text-[10px] tracking-wide uppercase text-zinc-500">
-                  <span className="w-1.5 h-1.5 rounded-full bg-zinc-500" />
-                  Web Preview
-                </div>
-              </div>
-
-              {/* Address bar */}
-              <div className="flex items-center gap-2 px-3 py-2.5 bg-[#0f0f10] border-b border-[#232326] shrink-0">
-                <div className="flex items-center gap-1 shrink-0">
-                  <button
-                    onClick={handleRefresh}
-                    disabled={!activeProject}
-                    className="w-7 h-7 rounded-full bg-[#141416] border border-[#27272a] flex items-center justify-center text-zinc-500 hover:text-white hover:border-[#3f3f46] disabled:opacity-40 transition-colors"
-                    title="Refresh"
-                  >
-                    <RefreshCw size={12} className={frameLoading ? 'animate-spin' : ''} />
-                  </button>
-                  <div className="hidden sm:flex items-center gap-1 text-zinc-600">
-                    <span className="w-4 h-4 rounded-full bg-[#141416] border border-[#27272a] flex items-center justify-center">‹</span>
-                    <span className="w-4 h-4 rounded-full bg-[#141416] border border-[#27272a] flex items-center justify-center">›</span>
-                  </div>
-                </div>
-
-                <div className="flex-1 min-w-0 flex items-center gap-2 px-3 py-1.5 rounded-full bg-[#141416] border border-[#27272a] max-w-[560px] mx-auto">
-                  <Lock size={12} className="text-emerald-500 shrink-0" />
-                  <Globe size={12} className="text-zinc-600 shrink-0 hidden sm:block" />
-                  <span className="font-mono text-[12px] text-zinc-300 truncate">
-                    {activeProject?.url ? activeProject.url.replace('https://', '') : 'select a repository to preview'}
-                  </span>
-                  <span className="ml-auto hidden sm:inline-flex items-center gap-1 font-mono text-[10px] tracking-wide uppercase text-zinc-500 shrink-0">
-                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-                    Live
-                  </span>
-                </div>
-
-                <div className="flex items-center gap-1 shrink-0">
-                  {activeProject?.url && (
-                    <>
-                      <button
-                        onClick={handleCopy}
-                        className="w-7 h-7 rounded-full bg-[#141416] border border-[#27272a] flex items-center justify-center text-zinc-500 hover:text-white hover:border-[#3f3f46] transition-colors"
-                        title="Copy URL"
-                      >
-                        {copied ? <Check size={12} className="text-emerald-500" /> : <Copy size={12} />}
-                      </button>
-                      <a
-                        href={activeProject.url || undefined}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="w-7 h-7 rounded-full bg-white text-black flex items-center justify-center hover:bg-zinc-100 transition-colors"
-                        title="Open in new tab"
-                      >
-                        <ExternalLink size={12} />
-                      </a>
-                    </>
-                  )}
-                </div>
-              </div>
-
-              {/* Viewport — responsive height for mobile → desktop (clamp + breakpoints) */}
-              <div className="relative overflow-hidden bg-[#0a0a0b] w-full shrink-0 h-[clamp(380px,50vh,520px)] sm:h-[clamp(420px,52vh,560px)] lg:h-[clamp(500px,55vh,640px)]">
-                {selected === 'readme' ? (
-                  readmeLoading ? (
-                    <LoadingSkeleton />
-                  ) : (
-                    <div className="h-full overflow-y-auto">
-                      <article className="markdown-body p-6">
-                        <ReactMarkdown remarkPlugins={[remarkGfm]}>{readmeContent}</ReactMarkdown>
-                      </article>
-                    </div>
-                  )
-                ) : previewKind === 'json' && jsonPayload ? (
-                  <JsonPreview data={jsonPayload.parsed} raw={jsonPayload.raw} name={activeProject.name} />
-                ) : activeProject && activeProject.url && previewKind !== 'probe' && apiLike && probeFail === 'cors' ? (
-                  <div className="absolute inset-0 flex flex-col items-center justify-center gap-4 p-8 text-center">
-                    {/* API endpoint the browser can't read inline (no CORS headers) —
-                        on-brand panel instead of the raw white JSON dump */}
-                    <div className="w-12 h-12 rounded-2xl bg-[#141416] border border-[#27272a] flex items-center justify-center text-emerald-500">
-                      <Braces size={20} />
-                    </div>
-                    <div className="space-y-2">
-                      <p className="text-sm font-semibold text-white">JSON API endpoint</p>
-                      <p className="text-xs leading-5 text-zinc-500 max-w-[380px]">
-                        This project is an API — the live response is raw JSON, which can’t be rendered inline without CORS headers.
-                      </p>
-                    </div>
-                    <div className="w-full max-w-[440px] rounded-xl border border-[#232326] bg-[#141416] p-3 text-left">
-                      <p className="font-mono text-[10px] tracking-widest uppercase text-zinc-600">quick test</p>
-                      <div className="mt-1.5 flex items-center gap-2">
-                        <code className="flex-1 min-w-0 font-mono text-[11px] text-zinc-400 truncate">
-                          <span className="text-emerald-500">$</span> curl -s {activeProject.url.replace('https://', '')} | jq
-                        </code>
-                        <button
-                          onClick={() => navigator.clipboard.writeText(`curl -s ${activeProject.url} | jq`)}
-                          className="w-6 h-6 shrink-0 rounded-md flex items-center justify-center text-zinc-600 hover:text-zinc-300 hover:bg-[#1a1a1e] transition-colors"
-                          title="Copy command"
-                        >
-                          <Copy size={11} />
-                        </button>
-                      </div>
-                    </div>
-                    <div className="flex gap-2">
-                      <a
-                        href={activeProject.url}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="inline-flex items-center gap-1.5 px-4 py-2 rounded-full bg-white text-black text-xs font-semibold hover:bg-zinc-100 transition-colors"
-                      >
-                        Open endpoint <ExternalLink size={12} />
-                      </a>
-                      <button
-                        onClick={handleRefresh}
-                        className="inline-flex items-center gap-1.5 px-4 py-2 rounded-full border border-[#27272a] bg-[#141416] text-xs font-medium text-zinc-300 hover:border-[#3f3f46] hover:text-white transition-colors"
-                      >
-                        <RefreshCw size={12} /> Retry
-                      </button>
-                    </div>
-                  </div>
-                ) : activeProject && activeProject.url && previewKind !== 'probe' ? (
-                  <>
-                    <iframe
-                      key={frameKey}
-                      src={activeProject.url}
-                      className="absolute inset-0 w-full h-full border-0 bg-white"
-                      title={activeProject.name}
-                      loading="lazy"
-                      sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-popups-to-escape-sandbox"
-                      onLoad={() => {
-                        setFrameLoading(false);
-                        setFrameError(false);
-                      }}
-                      onError={() => {
-                        setFrameLoading(false);
-                        setFrameError(true);
-                      }}
-                    />
-                    {/* Loading overlay */}
-                    {frameLoading && (
-                      <div className="absolute inset-0 bg-[#0a0a0b] flex flex-col items-center justify-center gap-3 p-6">
-                        <div className="w-8 h-8 rounded-full border-2 border-zinc-700 border-t-white animate-spin" />
-                        <p className="font-mono text-xs tracking-wide text-zinc-500">Loading preview…</p>
-                        <p className="font-mono text-[11px] text-zinc-600 truncate max-w-[300px]">{activeProject.url}</p>
-                      </div>
-                    )}
-                    {/* Blocked / error fallback */}
-                    {frameError && !frameLoading && (
-                      <div className="absolute inset-0 bg-[#0f0f10]/95 backdrop-blur-sm flex flex-col items-center justify-center gap-4 p-8 text-center">
-                        <div className="w-12 h-12 rounded-2xl bg-[#141416] border border-[#27272a] flex items-center justify-center text-zinc-500">
-                          <Monitor size={20} />
-                        </div>
-                        <div className="space-y-2">
-                          <p className="text-sm font-semibold text-white">Preview can’t be embedded</p>
-                          <p className="text-xs leading-5 text-zinc-500 max-w-[360px]">
-                            This site blocks embedding via <span className="font-mono text-zinc-400">X-Frame-Options</span>. Open it directly for the full experience.
-                          </p>
-                        </div>
-                        <div className="flex gap-2">
-                          <a
-                            href={activeProject.url}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="inline-flex items-center gap-1.5 px-4 py-2 rounded-full bg-white text-black text-xs font-semibold hover:bg-zinc-100 transition-colors"
-                          >
-                            Open live site <ExternalLink size={12} />
-                          </a>
-                          <button
-                            onClick={handleRefresh}
-                            className="inline-flex items-center gap-1.5 px-4 py-2 rounded-full border border-[#27272a] bg-[#141416] text-xs font-medium text-zinc-300 hover:border-[#3f3f46] hover:text-white transition-colors"
-                          >
-                            <RefreshCw size={12} /> Retry
-                          </button>
-                        </div>
-                        <p className="font-mono text-[11px] tracking-wide text-zinc-600">
-                          {activeProject.name} · {activeProject.url?.replace('https://', '')}
-                        </p>
-                      </div>
-                    )}
-                  </>
-                ) : (
-                  <div className="h-full flex flex-col items-center justify-center gap-4 p-8 text-center">
-                    <div className="w-12 h-12 rounded-2xl bg-[#141416] border border-[#27272a] flex items-center justify-center text-zinc-600">
-                      <FolderGit size={20} />
-                    </div>
-                    <div className="space-y-1">
-                      <p className="font-mono text-sm text-zinc-300">
-                        <span className="text-white">$</span> select --project to preview
-                      </p>
-                      <p className="text-xs text-zinc-500">Choose a repository from the explorer to launch its live web window.</p>
-                    </div>
-                    <div className="flex gap-2 font-mono text-[11px] text-zinc-600">
-                      <span>jshmlnd@portfolio</span>
-                      <span className="text-zinc-700">·</span>
-                      <span>zsh</span>
-                    </div>
-                  </div>
-                )}
-              </div>
-
-              {/* Status bar */}
-              <div className="px-4 py-2.5 border-t border-[#232326] bg-[#0f0f10] flex items-center justify-between gap-2 shrink-0">
-                <div className="flex items-center gap-2 min-w-0">
-                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 shrink-0" />
-                  <span className="font-mono text-[11px] tracking-wide text-zinc-500 truncate">
-                    {activeProject ? `${activeProject.name} — ${activeProject.year} · ${activeProject.highlight}` : 'No selection'}
-                  </span>
-                </div>
-                <span className="font-mono text-[11px] text-zinc-600 hidden sm:inline shrink-0">
-                  {frameLoading
-                    ? 'Loading…'
-                    : previewKind === 'json'
-                      ? 'JSON API · rendered natively'
-                      : apiLike && probeFail === 'cors'
-                        ? 'JSON API · open externally'
-                        : frameError
-                          ? 'Blocked · open externally'
-                          : 'Preview · sandboxed iframe'}
-                </span>
-              </div>
-            </div>
-          </div>
+          {items.map((p) => (
+            <ProjectCard key={p.name} {...p} />
+          ))}
+          <Fillers count={items.length} cols={2} className="hidden sm:block lg:hidden" />
+          <Fillers count={items.length} cols={3} className="hidden lg:block" />
         </div>
       </div>
     </section>

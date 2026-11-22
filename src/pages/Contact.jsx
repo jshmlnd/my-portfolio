@@ -22,6 +22,7 @@ const Contact = () => {
       widgetIdRef.current = window.turnstile.render(turnstileRef.current, {
         sitekey: TURNSTILE_SITEKEY,
         action: 'contact',
+        theme: 'dark',
         callback: setTurnstileToken,
         'expired-callback': () => setTurnstileToken(''),
         'error-callback': () => {
@@ -132,7 +133,7 @@ const Contact = () => {
               Have a project in mind? I'm always open to discussing new opportunities, creative ideas, or ways to bring your vision to life.
             </p>
           </div>
-          <div className="hidden sm:inline-flex items-center gap-2 rounded-full border border-[#27272a] bg-[#0f0f10] px-3 py-1.5 font-mono text-[11px] tracking-wide text-zinc-500">
+          <div className="hidden sm:inline-flex self-start lg:self-auto items-center gap-2 rounded-full border border-[#27272a] bg-[#0f0f10] px-3 py-1.5 font-mono text-[11px] tracking-wide text-zinc-500">
             <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
             Open to internships · 2027
           </div>

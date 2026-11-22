@@ -1,5 +1,6 @@
 import { ArrowUpRight, Code2, Database, MapPin, Rocket } from 'lucide-react';
 import { useReveal } from '../hooks/useReveal';
+import portrait from '../assets/images/joshua.jpg';
 
 const strengths = [
   {
@@ -46,6 +47,19 @@ const About = () => {
 
         <div className="grid lg:grid-cols-[1.05fr_0.95fr] gap-6 items-start">
           <div className="rounded-2xl border border-[#27272a] bg-[#0f0f10] p-6 sm:p-8 space-y-5">
+            <div className="flex items-center gap-4">
+              <img
+                src={portrait}
+                alt="Portrait of Joshua Klein Malonda"
+                width="96"
+                height="96"
+                className="w-24 h-24 rounded-2xl object-cover border border-[#27272a] shrink-0"
+              />
+              <div className="space-y-1">
+                <p className="text-[17px] font-semibold tracking-tight text-white">Joshua Klein Malonda</p>
+                <p className="font-mono text-[11px] tracking-wide text-zinc-500">Full-stack developer · CS student</p>
+              </div>
+            </div>
             <p className="text-[15px] leading-7 text-zinc-300">
               I&apos;m Joshua, a Computer Science student at the University of Santo Tomas - Legazpi. I build web
               products that connect a clear interface to dependable backend systems, from the first sketch through

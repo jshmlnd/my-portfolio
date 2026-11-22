@@ -33,6 +33,88 @@ const commands = [
   { cmd: 'echo $STATUS', delay: 2400 },
 ];
 
+// Output lines of the hero terminal. Rendered twice: once finished and invisible to reserve the final
+// height (no layout shift while it types), once live on top in the same grid cell.
+const TerminalLines = ({ visibleLines, typedCmd }) => (
+  <>
+    {/* whoami */}
+    {visibleLines >= 1 && (
+      <div className="animate-fade-in">
+        <p className="flex gap-2">
+          <span className="text-zinc-500 shrink-0">❯</span>
+          <span className="text-zinc-200">whoami</span>
+        </p>
+        <div className="mt-2 pl-4 border-l border-[#232326] ml-1 space-y-1">
+          <p className="text-white font-medium">{personalDetails[0]}</p>
+          <p className="text-zinc-500 text-[12px]">{personalDetails[1]}</p>
+          <p className="text-zinc-500 text-[12px]">{personalDetails[2]}</p>
+        </div>
+      </div>
+    )}
+
+    {/* techstack */}
+    {visibleLines >= 2 && (
+      <div className="mt-5 animate-fade-in">
+        <p className="flex gap-2">
+          <span className="text-zinc-500 shrink-0">❯</span>
+          <span className="text-zinc-200">cat techstack.txt</span>
+        </p>
+        <div className="mt-3 grid grid-cols-2 sm:grid-cols-4 gap-2">
+          {techStack.map(({ name, icon }) => (
+            <div
+              key={name}
+              className="flex items-center gap-2 px-2 py-2 rounded-xl border border-[#232326] bg-[#141416] hover:bg-[#1a1a1e] hover:border-[#2e2e32] transition-colors group"
+            >
+              <svg
+                role="img"
+                viewBox="0 0 24 24"
+                width="14"
+                height="14"
+                fill="currentColor"
+                className="text-zinc-400 group-hover:text-white transition-colors shrink-0"
+              >
+                <path d={icon.path} />
+              </svg>
+              <span className="text-[12px] font-medium text-zinc-300 group-hover:text-white leading-tight min-w-0">
+                {name}
+              </span>
+            </div>
+          ))}
+        </div>
+      </div>
+    )}
+
+    {/* status */}
+    {visibleLines >= 3 && (
+      <div className="mt-5 animate-fade-in">
+        <p className="flex gap-2">
+          <span className="text-zinc-500 shrink-0">❯</span>
+          <span className="text-zinc-200">echo $STATUS</span>
+        </p>
+        <div className="mt-2 pl-4 border-l border-emerald-500/20 ml-1">
+          <p className="inline-flex items-center gap-2 text-emerald-400 text-[12px]">
+            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+            Open to internships — 2027 · Full-stack roles
+          </p>
+        </div>
+      </div>
+    )}
+
+    {/* typing / idle */}
+    <div className="mt-5 flex gap-2 items-center text-zinc-500">
+      <span className="shrink-0">❯</span>
+      {visibleLines < commands.length ? (
+        <>
+          <span className="text-zinc-200">{typedCmd}</span>
+          <span className="w-2 h-4 bg-white animate-blink ml-0.5" />
+        </>
+      ) : (
+        <span className="w-2 h-4 bg-white animate-blink" />
+      )}
+    </div>
+  </>
+);
+
 const Hero = () => {
   const [visibleLines, setVisibleLines] = useState(0);
   const [typedCmd, setTypedCmd] = useState('');
@@ -106,7 +188,7 @@ const Hero = () => {
                   e.preventDefault();
                   const el = document.getElementById('projects');
                   if (!el) return;
-                  const navOffset = 72;
+                  const navOffset = 0; // no top bar since the sidebar replaced it
                   const top = el.getBoundingClientRect().top + window.scrollY - navOffset;
                   const start = window.scrollY;
                   const distance = top - start;
@@ -124,7 +206,7 @@ const Hero = () => {
                 }}
                 className="inline-flex items-center gap-2 px-6 py-3 rounded-full bg-white text-black text-sm font-semibold hover:bg-zinc-200 transition-colors"
               >
-                View selected work
+                View work
                 <span className="text-zinc-500"><ArrowRight size={14} strokeWidth={3} /></span>
               </a>
               <a
@@ -199,80 +281,13 @@ const Hero = () => {
                   <span className="ml-auto hidden sm:inline text-zinc-600">UTF-8 · 80×24</span>
                 </div>
 
-                {/* whoami */}
-                {visibleLines >= 1 && (
-                  <div className="animate-fade-in">
-                    <p className="flex gap-2">
-                      <span className="text-zinc-500 shrink-0">❯</span>
-                      <span className="text-zinc-200">whoami</span>
-                    </p>
-                    <div className="mt-2 pl-4 border-l border-[#232326] ml-1 space-y-1">
-                      <p className="text-white font-medium">{personalDetails[0]}</p>
-                      <p className="text-zinc-500 text-[12px]">{personalDetails[1]}</p>
-                      <p className="text-zinc-500 text-[12px]">{personalDetails[2]}</p>
-                    </div>
+                <div className="grid">
+                  <div className="invisible [grid-area:1/1]" aria-hidden="true" inert>
+                    <TerminalLines visibleLines={commands.length} typedCmd="" />
                   </div>
-                )}
-
-                {/* techstack */}
-                {visibleLines >= 2 && (
-                  <div className="mt-5 animate-fade-in">
-                    <p className="flex gap-2">
-                      <span className="text-zinc-500 shrink-0">❯</span>
-                      <span className="text-zinc-200">cat techstack.txt</span>
-                    </p>
-                    <div className="mt-3 grid grid-cols-2 sm:grid-cols-4 gap-2">
-                      {techStack.map(({ name, icon }) => (
-                        <div
-                          key={name}
-                          className="flex items-center gap-2 px-2 py-2 rounded-xl border border-[#232326] bg-[#141416] hover:bg-[#1a1a1e] hover:border-[#2e2e32] transition-colors group"
-                        >
-                          <svg
-                            role="img"
-                            viewBox="0 0 24 24"
-                            width="14"
-                            height="14"
-                            fill="currentColor"
-                            className="text-zinc-400 group-hover:text-white transition-colors shrink-0"
-                          >
-                            <path d={icon.path} />
-                          </svg>
-                          <span className="text-[12px] font-medium text-zinc-300 group-hover:text-white leading-tight min-w-0">
-                            {name}
-                          </span>
-                        </div>
-                      ))}
-                    </div>
+                  <div className="[grid-area:1/1]">
+                    <TerminalLines visibleLines={visibleLines} typedCmd={typedCmd} />
                   </div>
-                )}
-
-                {/* status */}
-                {visibleLines >= 3 && (
-                  <div className="mt-5 animate-fade-in">
-                    <p className="flex gap-2">
-                      <span className="text-zinc-500 shrink-0">❯</span>
-                      <span className="text-zinc-200">echo $STATUS</span>
-                    </p>
-                    <div className="mt-2 pl-4 border-l border-emerald-500/20 ml-1">
-                      <p className="inline-flex items-center gap-2 text-emerald-400 text-[12px]">
-                        <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
-                        Open to internships — 2027 · Full-stack roles
-                      </p>
-                    </div>
-                  </div>
-                )}
-
-                {/* typing / idle */}
-                <div className="mt-5 flex gap-2 items-center text-zinc-500">
-                  <span className="shrink-0">❯</span>
-                  {visibleLines < commands.length ? (
-                    <>
-                      <span className="text-zinc-200">{typedCmd}</span>
-                      <span className="w-2 h-4 bg-white animate-blink ml-0.5" />
-                    </>
-                  ) : (
-                    <span className="w-2 h-4 bg-white animate-blink" />
-                  )}
                 </div>
 
                 <div className="mt-6 flex items-center gap-2 pt-4 border-t border-[#1f1f23] font-mono text-[11px] text-zinc-600">

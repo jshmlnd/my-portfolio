@@ -22,8 +22,10 @@ const SectionFallback = () => <div className="h-24 bg-[#09090b]" aria-hidden="tr
 
 function Portfolio() {
   return (
-    <>
+    <div className="md:flex">
       <Navbar />
+      {/* pl-14 keeps content clear of the fixed 56px icon rail on phones; on md+ the sidebar is in the flow */}
+      <main className="flex-1 min-w-0 pl-14 md:pl-0">
       <HeroSection />
       <About />
       <DeferredSection><Suspense fallback={<SectionFallback />}><Repositories /></Suspense></DeferredSection>
@@ -31,7 +33,8 @@ function Portfolio() {
       <DeferredSection><Suspense fallback={<SectionFallback />}><Certifications /></Suspense></DeferredSection>
       <DeferredSection><Suspense fallback={<SectionFallback />}><Contact /></Suspense></DeferredSection>
       <DeferredSection><Suspense fallback={<SectionFallback />}><Footer /></Suspense></DeferredSection>
-    </>
+      </main>
+    </div>
   );
 }
 
