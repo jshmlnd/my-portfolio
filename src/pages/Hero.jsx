@@ -188,7 +188,7 @@ const Hero = () => {
                   e.preventDefault();
                   const el = document.getElementById('projects');
                   if (!el) return;
-                  const navOffset = 0; // no top bar since the sidebar replaced it
+                  const navOffset = document.querySelector('header')?.offsetHeight ?? 0; // clear the sticky header
                   const top = el.getBoundingClientRect().top + window.scrollY - navOffset;
                   const start = window.scrollY;
                   const distance = top - start;

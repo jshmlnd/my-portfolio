@@ -1,37 +1,36 @@
 import { useState, useEffect, useRef } from 'react';
-import { CollapsibleSidebar } from 'zjkm-ui/collapsible-sidebar';
-import { Home, User, LayoutGrid, Package, Award, Mail, Volume2, VolumeX } from 'lucide-react';
+import { PillNavbar } from 'zjkm-ui/pill-navbar';
+import { Volume2, VolumeX } from 'lucide-react';
 import { siGithub } from 'simple-icons';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faLinkedin } from '@fortawesome/free-brands-svg-icons';
+import { faSquareLinkedin } from '@fortawesome/free-brands-svg-icons';
 import { navItems } from './navItems';
 import { useSoundControls } from '../hooks/useSound';
 
-const ICONS = { about: User, projects: LayoutGrid, packages: Package, certs: Award, contact: Mail };
-const items = [
-  { label: 'Home', href: '#hero', icon: <Home size={18} /> },
-  ...navItems.map(({ label, href, id }) => {
-    const Icon = ICONS[id];
-    return { label, href, icon: <Icon size={18} /> };
-  }),
-];
+const links = navItems.map(({ label, href }) => ({ label, href }));
+const sections = ['#hero', ...links.map((l) => l.href)];
 
-// Same geometry as the sidebar's own rows, so icons line up in both states.
-const rowButton =
-  'w-full h-[38px] px-[10px] rounded-lg flex items-center gap-3 whitespace-nowrap text-[15px] text-zinc-200 hover:text-white hover:bg-white/[0.08] transition-colors focus-visible:outline-2 focus-visible:outline-white';
-const rowIcon = 'w-[18px] flex justify-center shrink-0 text-zinc-400';
-
-const BrandIcon = ({ path }) => (
-  <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor" aria-hidden="true">
-    <path d={path} />
-  </svg>
-);
+// The sticky header's height, so jumps land below it (it is taller on phones, where the nav wraps to a second row).
+const headerOffset = () => document.querySelector('header')?.offsetHeight ?? 0;
 
 const Navbar = () => {
   const [current, setCurrent] = useState('#hero');
   // True while a click's rAF scroll animation runs, so the scroll-spy doesn't flicker through sections.
   const programmaticScroll = useRef(0);
+  const mobileRow = useRef(null);
   const sound = useSoundControls();
+
+  // Keep the active link in view in the phone row, which scrolls sideways.
+  useEffect(() => {
+    const row = mobileRow.current;
+    const link = row?.querySelector('a[aria-current="page"]');
+    if (!row || !link || !row.offsetParent) return;
+    const { left, right } = link.getBoundingClientRect();
+    const box = row.getBoundingClientRect();
+    // Instant: a smooth row scroll gets cancelled by the page's own animated scroll running at the same time.
+    if (left < box.left + 24) row.scrollLeft += left - box.left - 24;
+    else if (right > box.right - 24) row.scrollLeft += right - box.right + 24;
+  }, [current]);
 
   useEffect(() => {
     let ticking = false;
@@ -40,12 +39,12 @@ const Navbar = () => {
       if (programmaticScroll.current > 0) return;
       const line = window.innerHeight * 0.4;
       let next = '#hero';
-      for (const { href } of items) {
+      for (const href of sections) {
         const el = document.querySelector(href);
         if (el && el.getBoundingClientRect().top <= line) next = href;
       }
       const doc = document.documentElement;
-      if (window.scrollY + window.innerHeight >= doc.scrollHeight - 2) next = items[items.length - 1].href;
+      if (window.scrollY + window.innerHeight >= doc.scrollHeight - 2) next = sections[sections.length - 1];
       setCurrent((prev) => (prev === next ? prev : next));
     };
     const onScroll = () => {
@@ -80,7 +79,7 @@ const Navbar = () => {
       const p = Math.min((ts - startTime) / duration, 1);
       const ease = 1 - Math.pow(1 - p, 3);
       // Re-measure each frame: lazy sections above the target can still be mounting and shift it.
-      const target = el.getBoundingClientRect().top + window.scrollY;
+      const target = el.getBoundingClientRect().top + window.scrollY - (href === '#hero' ? 0 : headerOffset());
       window.scrollTo(0, start + (target - start) * ease);
       if (p < 1) requestAnimationFrame(step);
       else programmaticScroll.current -= 1;
@@ -88,64 +87,69 @@ const Navbar = () => {
     requestAnimationFrame(step);
   };
 
-  // The sidebar renders plain hash links; take over their clicks for the smooth scroll.
-  const onNavClick = (e) => {
-    const link = e.target.closest('a[href^="#"]');
-    if (!link) return;
+  const onNavigate = (href, e) => {
     e.preventDefault();
-    scrollTo(link.getAttribute('href'));
-    // On phones the expanded sidebar overlays the page; fold it back once a section is picked.
-    // The component owns its state, so use its own toggle.
-    const aside = e.currentTarget;
-    if (window.matchMedia('(max-width: 767px)').matches && !aside.querySelector('nav[data-collapsed]')) {
-      aside.querySelector('nav.site-sidebar-nav > button')?.click();
-    }
+    scrollTo(href);
   };
 
   return (
-    <aside
-      onClick={onNavClick}
-      className="site-sidebar fixed md:sticky inset-y-0 left-0 top-0 z-50 h-dvh shrink-0 flex flex-col border-r border-[#232326] bg-[#09090b] text-zinc-400"
-    >
-      <a href="#hero" aria-label="jshmlnd.dev, back to top" className="mx-2 mt-3 mb-2 h-[38px] flex items-center gap-2 whitespace-nowrap">
-        <span className="w-[38px] flex justify-center shrink-0">
+    <header className="sticky top-0 z-50 w-full border-b border-[#232326] bg-[#09090b]/80 backdrop-blur-xl">
+      <div className="max-w-[1160px] mx-auto px-6 h-[64px] flex items-center justify-between gap-6">
+        <a href="#hero" onClick={(e) => onNavigate('#hero', e)} className="flex items-center gap-3 shrink-0 group" aria-label="jshmlnd.dev, back to top">
           <span className="w-8 h-8 rounded-lg bg-white text-black flex items-center justify-center font-mono font-bold text-[13px] tracking-tighter">
             &lt;/&gt;
           </span>
-        </span>
-        <span className="site-sidebar__label text-[17px] font-semibold tracking-tight text-white">jshmlnd.dev</span>
-      </a>
-
-      <CollapsibleSidebar
-        items={items}
-        current={current}
-        label="Primary"
-        defaultCollapsed={typeof window !== 'undefined' && window.matchMedia('(max-width: 767px)').matches}
-        className="site-sidebar-nav flex-1"
-      />
-
-      <div className="flex flex-col gap-1 p-2 border-t border-[#232326]">
-        <a href="https://github.com/jshmlnd" target="_blank" rel="noopener noreferrer" aria-label="GitHub" title="GitHub" className={rowButton}>
-          <span className={rowIcon}><BrandIcon path={siGithub.path} /></span>
-          <span className="site-sidebar__label">github</span>
+          <span className="hidden sm:flex flex-col leading-none">
+            <span className="font-mono font-semibold text-[13px] tracking-tight text-white group-hover:text-zinc-200 transition-colors">jshmlnd.dev</span>
+            <span className="font-mono text-[10px] tracking-widest uppercase text-zinc-500">Full-stack Dev</span>
+          </span>
         </a>
-        <a href="https://www.linkedin.com/in/jshmlnd/" target="_blank" rel="noopener noreferrer" aria-label="Hire me on LinkedIn" title="Hire me on LinkedIn" className={rowButton}>
-          <span className={rowIcon}><FontAwesomeIcon icon={faLinkedin} className="text-[16px]" /></span>
-          <span className="site-sidebar__label">linkedin</span>
-        </a>
-        <button
-          type="button"
-          onClick={() => sound?.[sound.enabled ? 'disable' : 'enable']()}
-          className={rowButton}
-          aria-label={`Interface sounds: ${sound?.enabled ? 'on' : 'off'}`}
-          aria-pressed={sound?.enabled || false}
-          title={sound?.enabled ? 'Mute interface sounds' : 'Enable interface sounds'}
-        >
-          <span className={rowIcon}>{sound?.enabled ? <Volume2 size={16} /> : <VolumeX size={16} />}</span>
-          <span className="site-sidebar__label">{sound?.enabled ? 'on' : 'off'}</span>
-        </button>
+
+        {/* Hide via a wrapper: the component's own display rule outranks Tailwind's layered `hidden`. */}
+        <div className="hidden md:block">
+          <PillNavbar links={links} current={current} onNavigate={onNavigate} label="Primary" className="site-pill-nav" />
+        </div>
+
+        <div className="flex items-center gap-2 sm:gap-3">
+          <a
+            href="https://github.com/jshmlnd"
+            target="_blank"
+            rel="noopener noreferrer"
+            aria-label="GitHub"
+            title="GitHub"
+            className="w-9 h-9 rounded-full bg-[#18181b] border border-[#27272a] flex items-center justify-center text-zinc-400 hover:text-white hover:border-[#3f3f46] transition-colors"
+          >
+            <svg viewBox="0 0 24 24" width="15" height="15" fill="currentColor" aria-hidden="true">
+              <path d={siGithub.path} />
+            </svg>
+          </a>
+          <a
+            href="https://www.linkedin.com/in/jshmlnd/"
+            target="_blank"
+            rel="noopener noreferrer"
+            aria-label="Hire me on LinkedIn"
+            className="hidden sm:inline-flex items-center gap-1.5 px-4 py-2 rounded-full bg-white text-[13px] font-medium text-black hover:bg-zinc-200 transition-colors"
+          >
+            Hire Me <FontAwesomeIcon icon={faSquareLinkedin} size="lg" style={{ color: 'rgb(30,144,255)' }} />
+          </a>
+          <button
+            type="button"
+            onClick={() => sound?.[sound.enabled ? 'disable' : 'enable']()}
+            className="w-9 h-9 rounded-full bg-[#18181b] border border-[#27272a] flex items-center justify-center text-zinc-400 hover:text-white hover:border-[#3f3f46] transition-colors"
+            aria-label={sound?.enabled ? 'Mute interface sounds' : 'Enable interface sounds'}
+            aria-pressed={sound?.enabled || false}
+            title={sound?.enabled ? 'Mute interface sounds' : 'Enable interface sounds'}
+          >
+            {sound?.enabled ? <Volume2 size={15} /> : <VolumeX size={15} />}
+          </button>
+        </div>
       </div>
-    </aside>
+
+      {/* Phones: the five links don't fit beside the logo, so they get their own scrollable row. */}
+      <div ref={mobileRow} className="md:hidden overflow-x-auto px-4 pb-3 flex [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+        <PillNavbar links={links} current={current} onNavigate={onNavigate} label="Primary" className="site-pill-nav shrink-0 mx-auto" />
+      </div>
+    </header>
   );
 };
 
